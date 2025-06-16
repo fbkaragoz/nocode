@@ -1,10 +1,10 @@
 """
-Rich Formatter - Advanced text and code formatting utilities.
-Provides beautiful formatting for terminal display.
+UI Formatter - Professional text and code formatting utilities.
+Provides clean, consistent formatting for terminal display.
 """
 
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 from rich.text import Text
 from rich.table import Table
@@ -17,19 +17,19 @@ from rich.markdown import Markdown
 logger = logging.getLogger(__name__)
 
 
-class RichFormatter:
+class UIFormatter:
     """
-    Rich Formatter - Beautiful terminal formatting.
+    Professional UI Formatter - Clean, consistent formatting.
     
     Responsibilities:
     - Format code with syntax highlighting
-    - Create beautiful UI elements
-    - Format data structures
-    - Handle text styling
+    - Create professional UI elements
+    - Format data structures consistently
+    - Handle text styling with professional themes
     """
     
     def __init__(self):
-        """Initialize rich formatter."""
+        """Initialize UI formatter."""
         self.console = Console()
         
         # Language mappings for syntax highlighting
@@ -52,10 +52,12 @@ class RichFormatter:
             'yaml': 'yaml',
             'yml': 'yaml',
             'xml': 'xml',
-            'md': 'markdown'
+            'md': 'markdown',
+            'dockerfile': 'dockerfile',
+            'makefile': 'makefile'
         }
         
-        # Theme configuration
+        # Professional color scheme
         self.theme = {
             'primary': 'bright_blue',
             'secondary': 'cyan',
@@ -63,34 +65,33 @@ class RichFormatter:
             'warning': 'yellow',
             'error': 'red',
             'info': 'blue',
-            'dim': 'dim white'
+            'muted': 'dim white',
+            'accent': 'bright_magenta'
         }
     
     def format_code(self, code: str, language: str = "python", theme: str = "monokai") -> Syntax:
-        """Format code with syntax highlighting."""
+        """Format code with professional syntax highlighting."""
         try:
-            # Normalize language
             normalized_lang = self._normalize_language(language)
             
-            # Create syntax object
             syntax = Syntax(
                 code,
                 normalized_lang,
                 theme=theme,
                 line_numbers=True,
                 word_wrap=True,
-                background_color="default"
+                background_color="default",
+                indent_guides=True
             )
             
             return syntax
             
         except Exception as e:
             logger.error(f"Failed to format code: {e}")
-            # Fallback to plain text
             return Text(code)
     
     def format_welcome(self, welcome_data: Dict[str, Any]) -> Text:
-        """Format welcome screen content."""
+        """Format professional welcome screen."""
         try:
             welcome_text = Text()
             
@@ -98,24 +99,23 @@ class RichFormatter:
             title = welcome_data.get('title', 'AI Code Generation System')
             welcome_text.append(f"🚀 {title}\n", style="bold bright_blue")
             
-            # Version
+            # Version and model info
             version = welcome_data.get('version', '1.0.0')
-            welcome_text.append(f"Version: {version}\n", style="dim")
+            model = welcome_data.get('model', 'DeepSeek Coder')
+            welcome_text.append(f"Version: {version} | Model: {model}\n\n", style="dim")
             
-            # Interface type
-            interface_type = welcome_data.get('interface_type', 'enhanced')
-            welcome_text.append(f"Interface: {interface_type.title()}\n", style="cyan")
-            
-            # Model info
-            model = welcome_data.get('model', 'Unknown')
-            welcome_text.append(f"Model: {model}\n\n", style="bright_green")
+            # Mode information
+            mode = welcome_data.get('interface_type', 'standard')
+            welcome_text.append(f"Display Mode: {mode.title()}\n", style="cyan")
             
             # Features
             features = welcome_data.get('features', [])
             if features:
-                welcome_text.append("✨ Features:\n", style="bright_yellow")
+                welcome_text.append("✨ Active Features:\n", style="bright_yellow")
                 for feature in features:
                     welcome_text.append(f"  • {feature}\n", style="white")
+            
+            welcome_text.append("\n[green]System ready for code generation![/green]", style="green")
             
             return welcome_text
             
@@ -124,23 +124,26 @@ class RichFormatter:
             return Text("Welcome to AI Code Generation System!")
     
     def format_session_summary(self, summary: Dict[str, Any]) -> Text:
-        """Format session summary content."""
+        """Format professional session summary."""
         try:
             summary_text = Text()
             
             # Header
             summary_text.append("🎯 Session Summary\n\n", style="bold bright_magenta")
             
-            # Stats
-            turns = summary.get('conversation_turns', 0)
+            # Key metrics
+            conversations = summary.get('conversation_turns', 0)
             tokens = summary.get('total_tokens', 0)
             uptime = summary.get('uptime', '0s')
             model = summary.get('model_used', 'Unknown')
             
-            summary_text.append(f"💬 Conversations: {turns}\n", style="cyan")
+            # Format metrics professionally
+            summary_text.append(f"💬 Conversations: {conversations}\n", style="cyan")
             summary_text.append(f"🔤 Tokens Generated: {tokens:,}\n", style="green")
             summary_text.append(f"⏱️  Session Duration: {uptime}\n", style="yellow")
-            summary_text.append(f"🤖 Model Used: {model}\n", style="blue")
+            summary_text.append(f"🤖 Model: {model}\n\n", style="blue")
+            
+            summary_text.append("Thank you for using the AI Code Generation System!", style="bright_blue")
             
             return summary_text
             
@@ -149,31 +152,31 @@ class RichFormatter:
             return Text("Session completed successfully!")
     
     def format_system_metrics(self, metrics: Dict[str, Any]) -> Table:
-        """Format system metrics as a table."""
+        """Format system metrics in a professional table."""
         try:
-            table = Table(title="🖥️ System Metrics", show_header=True, header_style="bold magenta")
-            table.add_column("Metric", style="cyan", no_wrap=True)
-            table.add_column("Value", style="white")
+            table = Table(title="🖥️ System Status", show_header=True, header_style="bold magenta")
+            table.add_column("Resource", style="cyan", no_wrap=True)
+            table.add_column("Usage", style="white")
             table.add_column("Status", justify="center")
             
             # Memory usage
             memory_mb = metrics.get('memory_usage_mb', 0)
-            memory_status = "🟢" if memory_mb < 500 else "🟡" if memory_mb < 1000 else "🔴"
-            table.add_row("Memory Usage", f"{memory_mb} MB", memory_status)
+            memory_status = self._get_status_indicator(memory_mb, [500, 1000])
+            table.add_row("Memory", f"{memory_mb} MB", memory_status)
             
             # CPU usage
             cpu_percent = metrics.get('cpu_usage_percent', 0)
-            cpu_status = "🟢" if cpu_percent < 50 else "🟡" if cpu_percent < 80 else "🔴"
-            table.add_row("CPU Usage", f"{cpu_percent}%", cpu_status)
+            cpu_status = self._get_status_indicator(cpu_percent, [50, 80])
+            table.add_row("CPU", f"{cpu_percent}%", cpu_status)
             
-            # Ollama connection
-            ollama_connected = metrics.get('ollama_connected', False)
-            ollama_status = "🟢 Connected" if ollama_connected else "🔴 Disconnected"
-            table.add_row("Ollama Status", ollama_status, "")
+            # Model connection
+            model_connected = metrics.get('ollama_connected', False)
+            model_status = "🟢 Connected" if model_connected else "🔴 Disconnected"
+            table.add_row("Model Service", model_status, "")
             
             # Session info
-            turns = metrics.get('conversation_turns', 0)
-            table.add_row("Conversations", str(turns), "")
+            conversations = metrics.get('conversation_turns', 0)
+            table.add_row("Conversations", str(conversations), "")
             
             uptime = metrics.get('uptime', '0s')
             table.add_row("Uptime", uptime, "")
@@ -184,41 +187,8 @@ class RichFormatter:
             logger.error(f"Failed to format system metrics: {e}")
             return Table()
     
-    def format_progress_info(self, progress_info: Dict[str, Any]) -> Panel:
-        """Format progress information as a panel."""
-        try:
-            progress_text = Text()
-            
-            # Current stage
-            stage = progress_info.get('stage', 'unknown')
-            progress_percent = progress_info.get('progress_percent', 0)
-            status_message = progress_info.get('status_message', '')
-            
-            progress_text.append(f"Stage: {stage.title()}\n", style="bold cyan")
-            progress_text.append(f"Progress: {progress_percent:.1f}%\n", style="green")
-            
-            if status_message:
-                progress_text.append(f"Status: {status_message}\n", style="yellow")
-            
-            # Timing info
-            elapsed = progress_info.get('elapsed_time', 0)
-            remaining = progress_info.get('estimated_remaining', 0)
-            
-            progress_text.append(f"\n⏱️  Elapsed: {elapsed:.1f}s\n", style="dim")
-            progress_text.append(f"⏳ Remaining: {remaining:.1f}s", style="dim")
-            
-            return Panel(
-                progress_text,
-                title="📊 Progress",
-                border_style="blue"
-            )
-            
-        except Exception as e:
-            logger.error(f"Failed to format progress info: {e}")
-            return Panel("Progress information unavailable")
-    
-    def format_error_message(self, error: str, context: str = "") -> Panel:
-        """Format error message with context."""
+    def format_error_message(self, error: str, context: str = None) -> Panel:
+        """Format professional error message."""
         try:
             error_text = Text()
             error_text.append("❌ ", style="red")
@@ -238,8 +208,43 @@ class RichFormatter:
             logger.error(f"Failed to format error message: {e}")
             return Panel(f"Error: {error}", border_style="red")
     
+    def format_progress_info(self, progress_info: Dict[str, Any]) -> Panel:
+        """Format progress information professionally."""
+        try:
+            progress_text = Text()
+            
+            # Current stage
+            stage = progress_info.get('stage', 'processing')
+            progress_percent = progress_info.get('progress_percent', 0)
+            status_message = progress_info.get('status_message', '')
+            
+            progress_text.append(f"Stage: {stage.title()}\n", style="bold cyan")
+            progress_text.append(f"Progress: {progress_percent:.1f}%\n", style="green")
+            
+            if status_message:
+                progress_text.append(f"Status: {status_message}\n", style="yellow")
+            
+            # Timing info
+            elapsed = progress_info.get('elapsed_time', 0)
+            remaining = progress_info.get('estimated_remaining', 0)
+            
+            if elapsed > 0:
+                progress_text.append(f"\n⏱️  Elapsed: {elapsed:.1f}s\n", style="dim")
+            if remaining > 0:
+                progress_text.append(f"⏳ Remaining: {remaining:.1f}s", style="dim")
+            
+            return Panel(
+                progress_text,
+                title="📊 Progress",
+                border_style="blue"
+            )
+            
+        except Exception as e:
+            logger.error(f"Failed to format progress info: {e}")
+            return Panel("Progress information unavailable")
+    
     def format_command_help(self, commands: Dict[str, str]) -> Table:
-        """Format command help as a table."""
+        """Format command help professionally."""
         try:
             table = Table(title="📚 Available Commands", show_header=True, header_style="bold blue")
             table.add_column("Command", style="cyan", no_wrap=True)
@@ -255,7 +260,7 @@ class RichFormatter:
             return Table()
     
     def format_code_explanation(self, explanation: str) -> Panel:
-        """Format code explanation as markdown."""
+        """Format code explanation as professional markdown."""
         try:
             markdown_content = Markdown(explanation)
             
@@ -271,7 +276,7 @@ class RichFormatter:
             return Panel(explanation, title="Code Explanation", border_style="yellow")
     
     def create_status_indicator(self, status: str, is_active: bool = True) -> Text:
-        """Create a status indicator with appropriate styling."""
+        """Create professional status indicator."""
         indicator_text = Text()
         
         if is_active:
@@ -298,14 +303,23 @@ class RichFormatter:
         valid_languages = [
             'python', 'javascript', 'typescript', 'java', 'cpp', 'c', 'csharp',
             'go', 'rust', 'ruby', 'php', 'swift', 'kotlin', 'scala', 'bash',
-            'sql', 'html', 'css', 'json', 'yaml', 'xml', 'markdown', 'text'
+            'sql', 'html', 'css', 'json', 'yaml', 'xml', 'markdown', 'text',
+            'dockerfile', 'makefile', 'lua', 'r', 'matlab', 'powershell'
         ]
         
         if lang_lower in valid_languages:
             return lang_lower
         
-        # Auto-detect based on content patterns
-        if language == "auto-detect":
-            return "python"  # Default to Python
+        return "text"  # Fallback to plain text
+    
+    def _get_status_indicator(self, value: float, thresholds: list) -> str:
+        """Get status indicator based on value and thresholds."""
+        if len(thresholds) >= 2:
+            if value < thresholds[0]:
+                return "🟢 Normal"
+            elif value < thresholds[1]:
+                return "🟡 High"
+            else:
+                return "🔴 Critical"
         
-        return "text"  # Fallback to plain text 
+        return "🟢 Normal" 

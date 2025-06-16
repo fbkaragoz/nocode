@@ -32,7 +32,7 @@ python run.py --dual --project
 #### **Dual Terminal Mode** ⭐ 
 - **Main Terminal**: Code generation and user interaction
 - **Analytics Terminal**: Live system monitoring
-  - GPU utilization (RTX 4090 specific)
+  - GPU utilization (NVIDIA/AMD/Intel support)
   - Memory and CPU usage
   - Network statistics
   - Project progress
@@ -126,7 +126,7 @@ The analytics terminal provides:
 #### **System Resources**
 - **CPU Usage**: Real-time percentage with status indicators
 - **Memory Usage**: RAM consumption with health status
-- **GPU Metrics**: RTX 4090 utilization and VRAM usage
+- **GPU Metrics**: GPU utilization and VRAM usage (multi-vendor support)
 - **Disk Usage**: Storage space monitoring
 - **Network Activity**: Data transfer rates
 
@@ -192,11 +192,11 @@ With 131k token context:
 
 ### GPU Acceleration
 
-RTX 4090 optimizations:
-- **Model Loading**: 21.7GB VRAM utilization
-- **Inference Speed**: 50-80 tokens/second
+GPU Optimizations:
+- **Model Loading**: Efficient VRAM utilization (16-24GB typical)
+- **Inference Speed**: 50-80 tokens/second on high-end GPUs
 - **Parallel Processing**: Multi-threaded operations
-- **Memory Management**: Efficient VRAM usage
+- **Memory Management**: Smart VRAM allocation
 
 ### Smart Code Organization
 
@@ -260,8 +260,8 @@ model_params:
 ### Performance Optimization
 
 #### **For Best Performance:**
-1. Use dual terminal mode for monitoring
-2. Ensure RTX 4090 has adequate cooling
+1. Use analytics dashboard mode for monitoring
+2. Ensure GPU has adequate cooling and power
 3. Close unnecessary applications
 4. Use NVMe SSD for faster I/O
 5. Monitor resource usage continuously
@@ -269,7 +269,7 @@ model_params:
 #### **Resource Management:**
 - **CPU**: Keep below 80% usage
 - **Memory**: Maintain 4GB+ free RAM  
-- **GPU**: Monitor temperature <80°C
+- **GPU**: Monitor temperature <80°C (varies by GPU)
 - **Storage**: Keep 10GB+ free space
 
 ## 📈 Usage Examples

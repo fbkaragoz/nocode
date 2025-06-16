@@ -5,7 +5,6 @@ Session Statistics Model - Track session performance and usage metrics.
 import time
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field
-from datetime import datetime
 
 
 @dataclass

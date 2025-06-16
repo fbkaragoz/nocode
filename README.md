@@ -1,15 +1,15 @@
-# 🚀 Advanced AI Code Generation System
+# 🚀 AI Code Generation System
 
-High-performance AI-powered code generation system using **DeepSeek R1** with **RTX 4090** acceleration.
+High-performance AI-powered code generation system using **DeepSeek R1** with **GPU acceleration**.
 
 ## ✨ **Key Features**
 
 - **🧠 Extended Context**: 131k tokens for complex projects
-- **⚡ GPU Acceleration**: RTX 4090 optimized performance  
+- **⚡ GPU Acceleration**: Optimized for NVIDIA, AMD, and Intel GPUs
 - **🔄 Multi-Step Projects**: Automatic project breakdown and execution
-- **📊 Dual Terminal**: Separate analytics monitoring window
+- **📊 Analytics Dashboard**: Real-time system monitoring
 - **💾 Smart Organization**: Automatic code saving with timestamps
-- **🔍 Real-time Monitoring**: CPU/Memory/GPU usage tracking
+- **🔍 System Monitoring**: CPU/Memory/GPU usage tracking
 - **🎯 Multi-Language**: Python, JavaScript, TypeScript, Java, C++, Go, Rust
 
 ## 🚦 **Quick Start**
@@ -17,8 +17,10 @@ High-performance AI-powered code generation system using **DeepSeek R1** with **
 ### Prerequisites
 
 ```bash
-# GPU driver and CUDA
-nvidia-smi  # Should show RTX 4090
+# GPU driver (NVIDIA/AMD/Intel)
+# For NVIDIA: nvidia-smi
+# For AMD: rocm-smi
+# For Intel: intel_gpu_top
 
 # Ollama with DeepSeek R1
 ollama pull huihui_ai/deepseek-r1-Fusion:32b-coder-9010
@@ -39,33 +41,33 @@ conda activate nocode_env
 # Standard mode
 python run.py
 
-# Dual terminal (main + analytics)
-python run.py --dual
+# Analytics dashboard mode
+python run.py --analytics
 
 # Multi-step project mode
 python run.py --project
 
-# Experimental split view
-python run.py --split
+# Minimal interface mode
+python run.py --minimal
 
 # Combined modes
-python run.py --dual --project
+python run.py --analytics --project
 ```
 
 ## 🎮 **Interface Modes**
 
 ### **Standard Mode** (Default)
-- Single terminal with periodic status updates
+- Clean terminal interface with periodic status updates
 - Automatic code saving to `generated_code/`
 - Real-time performance monitoring
 
-### **Dual Terminal Mode** (`--dual`)
+### **Analytics Dashboard Mode** (`--analytics`)
 - **Main Terminal**: User interaction and code generation
-- **Analytics Terminal**: Live system monitoring
-  - CPU/Memory/GPU metrics
+- **Analytics Dashboard**: Live system monitoring in separate window
+  - CPU/Memory/GPU metrics (NVIDIA/AMD/Intel support)
   - Project progress tracking  
   - Network and disk usage
-  - Real-time charts and graphs
+  - Real-time performance charts
 
 ### **Project Mode** (`--project`)
 - Automatic project breakdown into steps
@@ -73,18 +75,23 @@ python run.py --dual --project
 - Progress tracking across project phases
 - Multi-file project organization
 
+### **Minimal Mode** (`--minimal`)
+- Streamlined interface for low-resource environments
+- Essential features only
+- Reduced visual elements
+
 ## 📊 **System Requirements**
 
 ### **Minimum**
 - Linux (Ubuntu 20.04+)
 - 16GB RAM
-- NVIDIA GPU (RTX 3070+)
+- GPU with 8GB+ VRAM (NVIDIA/AMD/Intel)
 - Python 3.8+
 
 ### **Recommended**
 - Linux (Ubuntu 22.04+)
 - 32GB+ RAM
-- NVIDIA RTX 4090 (24GB VRAM)
+- High-end GPU with 16GB+ VRAM
 - Python 3.10+
 - NVMe SSD storage
 
@@ -95,10 +102,10 @@ python run.py --dual --project
 │   ├── AutoCoderEngine     # Main AI interface
 │   ├── ProjectManager      # Multi-step projects
 │   └── StreamManager       # Real-time streaming
-├── Interfaces
-│   ├── TerminalInterface   # Standard UI
-│   ├── DualTerminalInterface # Dual window system
-│   └── SplitTerminalInterface # Experimental split
+├── Display Layer
+│   ├── DisplayManager      # Professional UI coordinator
+│   ├── UIFormatter         # Clean formatting utilities
+│   └── AnalyticsDisplay    # System monitoring dashboard
 ├── Services
 │   ├── OllamaService      # Model communication
 │   └── SystemMonitor     # Performance tracking
@@ -126,11 +133,11 @@ python run.py --dual --project
 
 ## 📈 **Performance Metrics**
 
-With RTX 4090:
+With High-end GPU:
 - **Generation Speed**: 50-80 tokens/second
 - **Context Length**: 131k tokens
 - **Response Time**: 2-5 seconds average
-- **Memory Usage**: ~22GB GPU VRAM
+- **Memory Usage**: ~16-24GB GPU VRAM
 - **CPU Efficiency**: Multi-threaded processing
 
 ## 🔧 **Configuration**
@@ -188,8 +195,14 @@ Breaks complex projects into manageable subtasks with dependencies.
 
 ### **GPU Not Detected**
 ```bash
+# For NVIDIA
 nvidia-smi  # Check GPU status
-nvidia-docker --version  # Verify CUDA
+
+# For AMD
+rocm-smi  # Check AMD GPU status
+
+# For Intel
+intel_gpu_top  # Check Intel GPU status
 ```
 
 ### **Ollama Connection Issues**
@@ -199,9 +212,9 @@ ollama serve  # Restart Ollama service
 ```
 
 ### **Performance Issues**
-- Ensure RTX 4090 has adequate cooling
-- Check VRAM availability: `nvidia-smi`
-- Monitor system resources in dual terminal mode
+- Ensure GPU has adequate cooling and power
+- Check VRAM availability with appropriate GPU command
+- Monitor system resources in analytics dashboard mode
 
 ## 📜 **License**
 
@@ -209,4 +222,4 @@ MIT License - See LICENSE file for details.
 
 ---
 
-**🔥 Powered by DeepSeek R1 + RTX 4090 for maximum performance** 
+**🔥 Powered by DeepSeek R1 + GPU acceleration for maximum performance** 

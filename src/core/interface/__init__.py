@@ -1,10 +1,9 @@
 """
-Interface module for advanced terminal and UI management.
-Provides clean architecture for user interface components.
+Interface module for professional UI management.
+Clean, modular architecture for user interface components.
 """
 
-from .terminal_interface import TerminalInterface
-from .split_terminal import SplitTerminalInterface
-from .rich_formatter import RichFormatter
+from .display_manager import DisplayManager, DisplayMode, DisplayConfig
+from .formatter import UIFormatter
 
-__all__ = ['TerminalInterface', 'SplitTerminalInterface', 'RichFormatter'] 
+__all__ = ['DisplayManager', 'DisplayMode', 'DisplayConfig', 'UIFormatter'] 
