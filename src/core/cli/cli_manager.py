@@ -14,7 +14,7 @@ from config.constants import PromptType
 from models.code_request import CodeRequest
 from core.auto_coder import AutoCoderEngine
 from core.streaming.stream_manager import StreamManager
-from core.interface.terminal_interface import TerminalInterface
+from core.interface import DisplayManager, DisplayMode, DisplayConfig
 from templates.prompt_manager import PromptManager
 from .command_processor import CommandProcessor
 from .input_handler import InputHandler
@@ -34,18 +34,25 @@ class CLIManager:
     - Maintain session state
     """
     
-    def __init__(self, engine: AutoCoderEngine, interface_type: str = "enhanced", project_mode: bool = False):
+    def __init__(self, engine: AutoCoderEngine, interface_mode: str = "standard", project_mode: bool = False):
         """Initialize CLI Manager with clean dependencies."""
         self.engine = engine
-        self.interface_type = interface_type
+        self.interface_mode = interface_mode
         self.project_mode = project_mode
+        
+        # Configure display mode
+        display_mode = DisplayMode.STANDARD
+        if interface_mode == "analytics":
+            display_mode = DisplayMode.ANALYTICS
+        elif interface_mode == "minimal":
+            display_mode = DisplayMode.MINIMAL
         
         # Core components
         self.stream_manager = StreamManager()
-        self.terminal_interface = TerminalInterface(interface_type)
+        self.display_manager = DisplayManager(DisplayConfig(mode=display_mode))
         self.prompt_manager = PromptManager()
         self.command_processor = CommandProcessor(engine, self.stream_manager)
-        self.input_handler = InputHandler(self.terminal_interface)
+        self.input_handler = InputHandler(self.display_manager)
         
         # Project management (if enabled)
         self.project_manager = None
@@ -84,20 +91,11 @@ class CLIManager:
         try:
             logger.info("Starting CLI Manager")
             
-            # Initialize interface
-            self.terminal_interface.initialize()
+            # Initialize display manager
+            self.display_manager.initialize()
             
             # Start system monitoring
             self._start_system_monitoring()
-            
-            # Initialize dual terminal if requested
-            if self.interface_type == "dual":
-                success = self._initialize_dual_terminal()
-                if not success:
-                    # Fallback to standard interface
-                    self.interface_type = "enhanced"
-                    self.terminal_interface = TerminalInterface(self.interface_type)
-                    self.terminal_interface.initialize()
             
             # Show welcome
             self._show_welcome_screen()
@@ -109,7 +107,7 @@ class CLIManager:
             return self._handle_graceful_shutdown()
         except Exception as e:
             logger.error(f"CLI Manager error: {e}")
-            self.terminal_interface.show_error(f"Fatal error: {e}")
+            self.display_manager.show_error(f"Fatal error: {e}")
             return 1
         finally:
             self._cleanup()
@@ -142,9 +140,10 @@ class CLIManager:
                 
             except KeyboardInterrupt:
                 break
+            
             except Exception as e:
-                logger.error(f"Interaction loop error: {e}")
-                self.terminal_interface.show_error(f"Error: {e}")
+                    logger.error(f"Interaction loop error: {e}")
+                    self.display_manager.show_error(f"Error: {e}")
         
         return 0
     
@@ -158,8 +157,8 @@ class CLIManager:
                     # Collect system metrics
                     metrics = self._collect_system_metrics()
                     
-                    # Update interface
-                    self.terminal_interface.update_system_metrics(metrics)
+                    # Update display
+                    self.display_manager.update_system_metrics(metrics)
                     
                     # Cache metrics for analysis
                     self._cache_system_metrics(metrics)
@@ -216,32 +215,7 @@ class CLIManager:
         
         return metrics
     
-    def _initialize_dual_terminal(self) -> bool:
-        """Initialize dual terminal system."""
-        try:
-            from core.interface.dual_terminal import DualTerminalInterface
-            from models.session_stats import SessionStats
-            from utils.system_monitor import SystemMonitor
-            
-            # Create session stats and system monitor
-            session_stats = SessionStats()
-            system_monitor = SystemMonitor()
-            
-            # Initialize dual terminal
-            dual_interface = DualTerminalInterface(session_stats, system_monitor)
-            success = dual_interface.initialize()
-            
-            if success:
-                self.terminal_interface = dual_interface
-                logger.info("Dual terminal system initialized")
-                return True
-            else:
-                logger.warning("Failed to initialize dual terminal system")
-                return False
-                
-        except Exception as e:
-            logger.error(f"Dual terminal initialization failed: {e}")
-            return False
+
     
     def _check_ollama_status(self) -> bool:
         """Quick Ollama connection check without spam."""
@@ -319,20 +293,20 @@ class CLIManager:
                 'Dependency tracking'
             ])
         
-        # Add dual terminal info if enabled
-        if self.interface_type == "dual":
-            features.append('Dual terminal monitoring')
+        # Add analytics info if enabled
+        if self.interface_mode == "analytics":
+            features.append('Analytics dashboard monitoring')
         
         welcome_data = {
-            'title': 'Advanced AI Code Generation System',
+            'title': 'AI Code Generation System',
             'version': '1.0.0',
-            'interface_type': self.interface_type.title(),
+            'interface_type': self.interface_mode.title(),
             'model': self.engine.settings.model_name,
             'features': features,
             'project_mode': self.project_mode
         }
         
-        self.terminal_interface.show_welcome(welcome_data)
+        self.display_manager.show_welcome(welcome_data)
     
     def _handle_graceful_shutdown(self) -> int:
         """Handle graceful shutdown with session summary."""
@@ -344,7 +318,7 @@ class CLIManager:
                 'model_used': self.engine.settings.model_name
             }
             
-            self.terminal_interface.show_goodbye(summary)
+            self.display_manager.show_goodbye(summary)
             return 0
             
         except Exception as e:
@@ -358,9 +332,9 @@ class CLIManager:
         # Save session summary
         self._save_session_summary()
         
-        # Cleanup interface
-        if self.terminal_interface:
-            self.terminal_interface.cleanup()
+        # Cleanup display manager
+        if self.display_manager:
+            self.display_manager.cleanup()
         
         # Stop monitoring
         if self.system_monitor_thread and self.system_monitor_thread.is_alive():
@@ -374,7 +348,7 @@ class CLIManager:
                 'session_end': time.time(),
                 'conversation_turns': self.conversation_turns,
                 'total_tokens_generated': self.total_tokens_generated,
-                'interface_type': self.interface_type,
+                'interface_mode': self.interface_mode,
                 'model_used': self.engine.settings.model_name
             }
             

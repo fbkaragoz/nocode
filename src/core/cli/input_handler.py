@@ -7,7 +7,7 @@ import logging
 from typing import Optional, List
 from datetime import datetime
 
-from core.interface.terminal_interface import TerminalInterface
+from core.interface import DisplayManager
 
 
 logger = logging.getLogger(__name__)
@@ -24,9 +24,9 @@ class InputHandler:
     - Handle special input cases
     """
     
-    def __init__(self, terminal_interface: TerminalInterface):
-        """Initialize input handler with terminal interface."""
-        self.terminal_interface = terminal_interface
+    def __init__(self, display_manager: DisplayManager):
+        """Initialize input handler with display manager."""
+        self.display_manager = display_manager
         self.input_history = []
         self.max_history = 100
         
@@ -39,8 +39,8 @@ class InputHandler:
     def get_user_input(self) -> Optional[str]:
         """Get user input with validation and preprocessing."""
         try:
-            # Get raw input from terminal
-            raw_input = self.terminal_interface.get_input()
+            # Get raw input from display manager
+            raw_input = self.display_manager.get_user_input()
             
             if raw_input is None:
                 return None
@@ -91,12 +91,12 @@ class InputHandler:
         
         # Check for maximum length
         if len(user_input) > 5000:
-            self.terminal_interface.show_error("Input too long. Please keep it under 5000 characters.")
+            self.display_manager.show_error("Input too long. Please keep it under 5000 characters.")
             return False
         
         # Check for potentially harmful content
         if self._contains_harmful_content(user_input):
-            self.terminal_interface.show_error("Input contains potentially harmful content.")
+            self.display_manager.show_error("Input contains potentially harmful content.")
             return False
         
         return True

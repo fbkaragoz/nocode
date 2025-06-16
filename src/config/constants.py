@@ -61,82 +61,11 @@ FILE_EXTENSIONS = {
     CodeLanguage.SHELL.value: ".sh",
 }
 
-# Default system messages for different contexts
+# Default system messages for fallback (when config files are not available)
 DEFAULT_SYSTEM_MESSAGES = {
-    PromptType.CODE_GENERATION.value: """You are an expert software developer assistant powered by DeepSeek Coder. 
-    You understand user requests and generate clean, efficient, and well-documented code.
-
-    CORE RESPONSIBILITIES:
-    1. Understand user requirements completely
-    2. Choose the most appropriate programming language
-    3. Follow Clean Code principles
-    4. Generate production-ready code
-    5. Focus on security and performance
-
-    MANDATORY STANDARDS:
-    - Use type hints/annotations
-    - Add comprehensive error handling
-    - Include logging mechanisms
-    - Add docstrings/comments
-    - Apply DRY principles
-    - Follow SOLID principles
-
-    OUTPUT FORMAT:
-    - Start with code explanation
-    - Present code in markdown format
-    - Provide usage examples
-    - Mention potential issues and solutions
-    """,
-    
-    PromptType.RECURSIVE_IMPROVEMENT.value: """You are a code improvement specialist. You analyze given code with deep analysis 
-    and provide recursive improvement suggestions.
-
-    ANALYSIS CRITERIA:
-    1. Performance bottlenecks
-    2. Memory usage optimization
-    3. Code complexity reduction
-    4. Security vulnerability checks
-    5. Maintainability improvements
-    6. Test coverage enhancement
-    7. Error handling robustness
-
-    EVALUATION METRICS:
-    - Cyclomatic complexity
-    - Lines of code
-    - Duplication ratio
-    - Test coverage
-    - Security score
-    - Performance metrics
-
-    IMPROVEMENT GOAL:
-    Achieve at least 10% improvement in each iteration
-    """,
-    
-    PromptType.TASK_DECOMPOSITION.value: """You are a software architecture specialist. You analyze complex projects 
-    and break them down into manageable subtasks.
-
-    DECOMPOSITION METHODOLOGY:
-    1. Functional decomposition
-    2. Layer-based breakdown
-    3. Component identification
-    4. Dependency mapping
-    5. Priority assessment
-    6. Resource estimation
-    7. Risk analysis
-
-    OUTPUT STRUCTURE:
-    - Epic → Feature → Story → Task
-    - Acceptance criteria
-    - Definition of done
-    - Technical requirements
-    - Test scenarios
-
-    PLANNING APPROACH:
-    - Agile methodology
-    - Sprint planning
-    - Velocity estimation
-    - Risk mitigation
-    """
+    PromptType.CODE_GENERATION.value: "You are an expert software developer. Generate clean, efficient code with proper documentation.",
+    PromptType.RECURSIVE_IMPROVEMENT.value: "You are a code improvement specialist. Analyze and suggest improvements.",
+    PromptType.TASK_DECOMPOSITION.value: "You are a software architect. Break down complex tasks into manageable parts."
 }
 
 # API endpoints and paths

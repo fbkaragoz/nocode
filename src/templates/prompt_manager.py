@@ -14,27 +14,27 @@ logger = logging.getLogger(__name__)
 
 
 class PromptManager:
-    """Manages dynamic prompt templates and model behaviors."""
+    """Professional prompt template manager with configurable behaviors."""
     
-    def __init__(self, behaviors_file: str = "src/templates/model_behaviors.yaml"):
-        """Initialize prompt manager with behaviors file."""
-        self.behaviors_file = Path(behaviors_file)
-        self.behaviors = {}
-        self.load_behaviors()
+    def __init__(self, prompts_file: str = "config/prompts.yaml"):
+        """Initialize prompt manager with configurable prompts."""
+        self.prompts_file = Path(prompts_file)
+        self.prompts_config = {}
+        self.load_prompts_config()
     
-    def load_behaviors(self) -> None:
-        """Load model behaviors from YAML file."""
+    def load_prompts_config(self) -> None:
+        """Load prompt configuration from YAML file."""
         try:
-            if self.behaviors_file.exists():
-                with open(self.behaviors_file, 'r', encoding='utf-8') as f:
-                    self.behaviors = yaml.safe_load(f) or {}
-                logger.info(f"Loaded model behaviors from {self.behaviors_file}")
+            if self.prompts_file.exists():
+                with open(self.prompts_file, 'r', encoding='utf-8') as f:
+                    self.prompts_config = yaml.safe_load(f) or {}
+                logger.info(f"Loaded prompt configuration from {self.prompts_file}")
             else:
-                logger.warning(f"Behaviors file not found: {self.behaviors_file}")
-                self.behaviors = self._get_default_behaviors()
+                logger.warning(f"Prompts file not found: {self.prompts_file}")
+                self.prompts_config = self._get_default_prompts()
         except Exception as e:
-            logger.error(f"Failed to load behaviors: {e}")
-            self.behaviors = self._get_default_behaviors()
+            logger.error(f"Failed to load prompts: {e}")
+            self.prompts_config = self._get_default_prompts()
     
     def save_behaviors(self) -> None:
         """Save current behaviors to YAML file."""
@@ -48,58 +48,78 @@ class PromptManager:
     
     def get_system_prompt(self, prompt_type: PromptType, context: Optional[Dict[str, Any]] = None) -> str:
         """Get system prompt for specific type with context enhancement."""
-        behavior_key = prompt_type.value
+        prompt_key = prompt_type.value
         
-        if behavior_key not in self.behaviors:
-            logger.warning(f"Behavior not found for {behavior_key}, using default")
+        # Get base system prompt
+        system_prompts = self.prompts_config.get('system_prompts', {})
+        base_prompt = system_prompts.get(prompt_key, '')
+        
+        if not base_prompt:
+            logger.warning(f"Prompt not found for {prompt_key}, using default")
             return self._get_default_system_prompt(prompt_type)
-        
-        behavior_config = self.behaviors[behavior_key]
-        base_prompt = behavior_config.get('system_prompt', '')
         
         # Enhance with context
         if context:
-            enhanced_prompt = self._enhance_prompt_with_context(base_prompt, behavior_config, context)
+            enhanced_prompt = self._enhance_prompt_with_context(base_prompt, context)
             return enhanced_prompt
         
         return base_prompt
     
-    def _enhance_prompt_with_context(self, base_prompt: str, config: Dict[str, Any], context: Dict[str, Any]) -> str:
+    def _enhance_prompt_with_context(self, base_prompt: str, context: Dict[str, Any]) -> str:
         """Enhance prompt with contextual information."""
         enhanced_parts = [base_prompt]
+        
+        # Get context modifiers from config
+        context_modifiers = self.prompts_config.get('context_modifiers', {})
         
         # Add language-specific preferences
         if context.get('target_language'):
             lang = context['target_language']
-            if lang in self.behaviors.get('language_preferences', {}):
-                lang_prefs = self.behaviors['language_preferences'][lang]
-                enhanced_parts.append(f"\nLanguage-specific guidelines for {lang}:")
-                enhanced_parts.append(f"- Style guide: {lang_prefs.get('style_guide', 'standard')}")
-                if 'frameworks' in lang_prefs:
-                    enhanced_parts.append(f"- Preferred frameworks: {', '.join(lang_prefs['frameworks'])}")
-                if 'testing' in lang_prefs:
-                    enhanced_parts.append(f"- Testing framework: {lang_prefs['testing']}")
+            lang_specific = context_modifiers.get('language_specific', {})
+            if lang in lang_specific:
+                lang_context = lang_specific[lang].get('additional_context', '')
+                if lang_context:
+                    enhanced_parts.append(lang_context)
+        
+        # Add project type specific context
+        if context.get('project_type'):
+            project_type = context['project_type']
+            project_types = context_modifiers.get('project_types', {})
+            if project_type in project_types:
+                project_context = project_types[project_type].get('additional_context', '')
+                if project_context:
+                    enhanced_parts.append(project_context)
+        
+        # Apply response style modifications
+        response_styles = self.prompts_config.get('response_styles', {})
         
         # Add creativity level adjustments
-        creativity = config.get('creativity_level', 'balanced')
-        if creativity == 'creative':
-            enhanced_parts.append("\nApproach: Be creative and explore innovative solutions.")
-        elif creativity == 'conservative':
-            enhanced_parts.append("\nApproach: Use well-established, proven patterns and practices.")
-        
-        # Add code style preferences
-        code_style = config.get('code_style', 'production')
-        if code_style == 'production':
-            enhanced_parts.append("\nCode quality: Production-ready with comprehensive error handling.")
-        elif code_style == 'prototype':
-            enhanced_parts.append("\nCode quality: Focus on rapid prototyping and core functionality.")
+        creativity = context.get('creativity_level', 'balanced')
+        if creativity in response_styles:
+            style_note = response_styles[creativity].get('style_note', '')
+            if style_note:
+                enhanced_parts.append(f"\nApproach: {style_note}")
         
         # Add verbosity level
-        verbosity = config.get('verbosity', 'balanced')
-        if verbosity == 'detailed':
-            enhanced_parts.append("\nExplanation level: Provide detailed explanations and comments.")
-        elif verbosity == 'minimal':
-            enhanced_parts.append("\nExplanation level: Keep explanations concise and focused.")
+        verbosity = context.get('verbosity', 'balanced')
+        if verbosity in response_styles:
+            style_note = response_styles[verbosity].get('style_note', '')
+            if style_note:
+                enhanced_parts.append(f"\nResponse style: {style_note}")
+        
+        # Add quality standards
+        quality_level = context.get('quality_level', 'minimum')
+        enhancement_rules = self.prompts_config.get('enhancement_rules', {})
+        quality_standards = enhancement_rules.get('quality_standards', {})
+        
+        if quality_level == 'production':
+            production_req = quality_standards.get('production_requirements', '')
+            if production_req:
+                enhanced_parts.append(production_req)
+        else:
+            minimum_req = quality_standards.get('minimum_requirements', '')
+            if minimum_req:
+                enhanced_parts.append(minimum_req)
         
         return '\n'.join(enhanced_parts)
     
@@ -146,24 +166,36 @@ class PromptManager:
         else:
             return base_tokens
     
-    def _get_default_behaviors(self) -> Dict[str, Any]:
-        """Get default behaviors if file loading fails."""
+    def _get_default_prompts(self) -> Dict[str, Any]:
+        """Get default prompts if file loading fails."""
         return {
-            'code_generation': {
-                'personality': 'expert_developer',
-                'creativity_level': 'balanced',
-                'code_style': 'production',
-                'verbosity': 'detailed',
-                'system_prompt': '''You are an expert software developer.
-Generate clean, efficient, and well-documented code.
-Include proper error handling and follow best practices.'''
-            },
-            'recursive_improvement': {
-                'focus_areas': ['performance_optimization', 'code_quality'],
-                'analysis_depth': 'comprehensive',
-                'system_prompt': '''You are a code review specialist.
-Analyze code and provide concrete improvement suggestions.
-Focus on performance, security, and maintainability.'''
+            'system_prompts': {
+                'code_generation': '''You are an expert software developer assistant. Generate clean, efficient, well-documented code.
+
+CORE PRINCIPLES:
+- Write production-ready code with proper error handling
+- Follow language-specific best practices and conventions
+- Include comprehensive documentation and comments
+- Use appropriate design patterns and architecture
+- Implement proper testing strategies when applicable
+- Focus on maintainability, scalability, and performance''',
+                
+                'recursive_improvement': '''You are a senior code review and optimization specialist.
+Analyze code systematically and provide actionable improvements.
+
+ANALYSIS FRAMEWORK:
+- Performance optimization opportunities
+- Code quality and maintainability improvements
+- Security vulnerabilities and best practices
+- Error handling and edge case coverage''',
+                
+                'task_decomposition': '''You are a senior software architect and project manager.
+Break down complex projects into manageable, actionable tasks.
+
+DECOMPOSITION METHODOLOGY:
+- Feature-based decomposition with clear boundaries
+- Priority-based ordering using MoSCoW method
+- Technology stack recommendations with rationale'''
             }
         }
     
