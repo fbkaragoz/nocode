@@ -21,14 +21,22 @@ class Settings:
     def _get_default_config(self) -> Dict[str, Any]:
         """Get default configuration."""
         return {
+            "agents": {
+                "coder": {
+                    "model_name": "deepseek-coder:6.7b-instruct",
+                    "temperature": 0.0,
+                    "top_p": 0.9,
+                },
+                "architect": {
+                    "model_name": "llama3:8b-instruct-q5_K_M",
+                    "temperature": 0.5,
+                    "top_p": 0.9,
+                }
+            },
             "ollama": {
                 "base_url": "http://127.0.0.1:11434/api",
-                "model_name": "huihui_ai/deepseek-r1-Fusion:32b-coder-9010",
                 "timeout": 300,
-                "history_size": 10,
-                "temperature": 0.7,
-                "top_p": 0.9,
-                "top_k": 40,
+                "history_size": 10
             },
             "code_generation": {
                 "output_directory": "generated_code",
@@ -69,6 +77,15 @@ class Settings:
         
         config[keys[-1]] = value
     
+    def get_agent_config(self, agent_name: str) -> Optional[Dict[str, Any]]:
+        """Get the configuration for a specific agent."""
+        return self.get(f"agents.{agent_name}")
+    
+    @property
+    def coder_model_name(self) -> str:
+        """Get the model name for the coder agent."""
+        return self.get("agents.coder.model_name", "deepseek-coder:6.7b-instruct")
+    
     @property
     def ollama_url(self) -> str:
         """Get Ollama base URL."""
@@ -76,8 +93,8 @@ class Settings:
     
     @property
     def model_name(self) -> str:
-        """Get model name."""
-        return self.get("ollama.model_name", "qwen:0.5b")
+        """Get model name (legacy, points to coder)."""
+        return self.coder_model_name
     
     @property
     def timeout(self) -> int:
@@ -92,12 +109,12 @@ class Settings:
     @property
     def temperature(self) -> float:
         """Get temperature."""
-        return self.get("ollama.temperature", 0.7)
+        return self.get("agents.coder.temperature", 0.0)
     
     @property
     def top_p(self) -> float:
         """Get top_p."""
-        return self.get("ollama.top_p", 0.9)
+        return self.get("agents.coder.top_p", 0.9)
     
     @property
     def top_k(self) -> int:
