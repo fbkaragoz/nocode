@@ -16,11 +16,91 @@ parts/
 sdist/
 var/
 wheels/
+pip-wheel-metadata/
 share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
 MANIFEST
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+auto_coder.log
+
+# Generated code
+generated_code/
+output/
+temp/
+
+# Configuration files (may contain sensitive data)
+config.yaml
+local_config.yaml
+user_config.yaml
+
+# CRITICAL: IP PROTECTION - NEVER COMMIT THESE
+.secrets/
+*.secret
+*.key
+*_secrets.yaml
+*_credentials.yaml
+behavior_profiles.yaml
+ai_instructions.yaml
+proprietary_prompts/
+ip_protected/
+
+# Model files and caches
+models/
+*.gguf
+*.bin
+.cache/
+model_cache/
+
+# Test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Development
+.debug/
+.profile/
+performance_logs/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Database
+*.db
+*.sqlite3
+
+# Environment variables
+.env.*
+!.env.example
 
 # PyInstaller
 *.manifest
@@ -31,18 +111,9 @@ pip-log.txt
 pip-delete-this-directory.txt
 
 # Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
 *.cover
 *.py,cover
 .hypothesis/
-.pytest_cache/
 cover/
 
 # Translations
@@ -50,7 +121,6 @@ cover/
 *.pot
 
 # Django stuff:
-*.log
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
@@ -68,9 +138,6 @@ docs/_build/
 # PyBuilder
 .pybuilder/
 target/
-
-# Jupyter Notebook
-.ipynb_checkpoints
 
 # IPython
 profile_default/
@@ -98,16 +165,6 @@ celerybeat.pid
 # SageMath parsed files
 *.sage.py
 
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-nocode_env/
-
 # Spyder project settings
 .spyderproject
 .spyproject
@@ -132,29 +189,9 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# OS
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
-# Project specific
-auto_coder.log
-*.log
-generated_code/
-models/deepseek-coder/
-models/ollama-coder/
-.ollama.info.txt
+# Project specific directories
+tmp/
+cache/
 
 # Temporary files
 *.tmp
@@ -168,9 +205,7 @@ config.local.yaml
 .env.production
 
 # AI Model files
-*.bin
 *.safetensors
-*.gguf
 *.ggml
 *.model
 
@@ -178,8 +213,3 @@ config.local.yaml
 *.tar.gz
 *.zip
 *.rar
-
-# Project specific directories
-tmp/
-cache/
-logs/

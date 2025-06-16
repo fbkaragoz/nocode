@@ -63,9 +63,8 @@ FILE_EXTENSIONS = {
 
 # Default system messages for fallback (when config files are not available)
 DEFAULT_SYSTEM_MESSAGES = {
-    PromptType.CODE_GENERATION.value: "You are an expert software developer. Generate clean, efficient code with proper documentation.",
-    PromptType.RECURSIVE_IMPROVEMENT.value: "You are a code improvement specialist. Analyze and suggest improvements.",
-    PromptType.TASK_DECOMPOSITION.value: "You are a software architect. Break down complex tasks into manageable parts."
+    # IP-protected prompts now loaded from secure sources
+    # No hardcoded prompts allowed in this file
 }
 
 # API endpoints and paths
@@ -79,7 +78,7 @@ API_ENDPOINTS = {
 # Performance thresholds
 PERFORMANCE_THRESHOLDS = {
     "MAX_RESPONSE_TIME": 30.0,  # seconds
-    "MAX_TOKEN_COUNT": 8192,
+    # Dynamic token configuration - removed hardcoded values
     "MIN_TOKENS_PER_SECOND": 10.0,
     "MAX_MEMORY_USAGE": 1024  # MB
 }

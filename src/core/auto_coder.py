@@ -1,196 +1,315 @@
 """
-Core Auto Coder Engine with recursive improvement and task decomposition.
+AutoCoderEngine - Simple, streaming-first AI code generation engine.
 """
 
 import logging
 import re
-from typing import List, Optional
+import os
+from typing import List, Optional, Dict, Iterator
 from datetime import datetime
 from pathlib import Path
+import glob
+import yaml
 
-from config.settings import Settings
-from config.constants import PromptType, CodeLanguage, FILE_EXTENSIONS
-from models.code_request import CodeRequest
-from models.code_response import CodeResponse, CodeBlock
-from services.ollama_service import OllamaService
+from src.config.settings import Settings
+from src.services.ollama_service import OllamaService
 
 
 logger = logging.getLogger(__name__)
 
 
 class AutoCoderEngine:
-    """Main engine for automatic code generation with advanced features."""
+    """
+    Simple, streaming-first AI code generation engine.
+    - Uses streaming for real-time output.
+    - Loads prompt templates from an external .secret file.
+    - Tracks last generated file for editing context.
+    """
     
     def __init__(self, settings: Settings):
-        """Initialize the auto coder engine."""
+        """Initialize the engine."""
         self.settings = settings
         self.ollama = OllamaService(settings)
-    
+        self.display_manager = None  # Set by CLI manager
+        self.prompt_templates = self._load_prompt_templates()
+        self.last_generated_file = None  # Track last generated file
+        self.conversation_context = []  # Simple conversation history
+        
+        logger.info("AutoCoderEngine (streaming-first) initialized")
+
+    def _load_prompt_templates(self) -> Dict[str, str]:
+        """Load prompt templates from the .secrets/prompts.yaml file."""
+        try:
+            secret_path = Path('./.secrets/prompts.yaml')
+            if not secret_path.exists():
+                logger.error(".secrets/prompts.yaml file not found!")
+                return {}
+
+            with open(secret_path, 'r', encoding='utf-8') as f:
+                templates = yaml.safe_load(f)
+            
+            logger.info("Prompt templates loaded successfully.")
+            return templates
+
+        except Exception as e:
+            logger.error(f"Failed to load prompts from .secrets/prompts.yaml: {e}")
+            return {}
+
+    def _is_edit_request(self, prompt: str) -> bool:
+        """Check if the prompt is asking to edit/fix existing code."""
+        edit_keywords = [
+            'fix', 'error', 'bug', 'edit', 'modify', 'change', 'update', 
+            'correct', 'repair', 'adjust', 'improve', 'hata', 'düzelt'
+        ]
+        return any(keyword in prompt.lower() for keyword in edit_keywords) or self._find_mentioned_file(prompt)
+
+    def _find_mentioned_file(self, prompt: str) -> Optional[str]:
+        """Find file mentioned in the prompt (e.g., @rps_game.py or its path)."""
+        # Look for .py files, possibly prefixed with @ or as a path
+        match = re.search(r'@?([\w/.-]+\.py)', prompt)
+        if not match:
+            return None
+
+        found_path = match.group(1)
+        
+        # If it's a direct path that exists, use it
+        if os.path.exists(found_path):
+            return found_path
+
+        # Otherwise, search for the basename in the workspace, prioritizing generated_code
+        basename = os.path.basename(found_path)
+        
+        # Search recursively in 'generated_code' first
+        matches = glob.glob(f"generated_code/**/{basename}", recursive=True)
+        if matches:
+            # Sort by modification time to get the newest one if multiple exist
+            matches.sort(key=os.path.getmtime, reverse=True)
+            return matches[0]
+            
+        # If not found, search the entire workspace
+        matches = glob.glob(f"**/{basename}", recursive=True)
+        if matches:
+            matches.sort(key=os.path.getmtime, reverse=True)
+            return matches[0]
+
+        return None
+
+    def _get_context_prompt(self, prompt: str) -> str:
+        """Build context-aware prompt including conversation history."""
+        context_parts = []
+        
+        # Add conversation history (last 3 exchanges)
+        if self.conversation_context:
+            context_parts.append("CONVERSATION HISTORY:")
+            for i, ctx in enumerate(self.conversation_context[-3:], 1):
+                context_parts.append(f"{i}. User: {ctx['user']}")
+                if ctx.get('result'):
+                    context_parts.append(f"   Result: {ctx['result']}")
+        
+        # Find target file for editing
+        target_file = None
+        if self._is_edit_request(prompt):
+            # First try to find file mentioned in prompt
+            target_file = self._find_mentioned_file(prompt)
+            # If not found, use last generated file
+            if not target_file and self.last_generated_file:
+                target_file = self.last_generated_file
+        
+        # Add target file info if found
+        if target_file:
+            context_parts.append(f"\nTARGET FILE FOR EDITING: {target_file}")
+            try:
+                with open(target_file, 'r', encoding='utf-8') as f:
+                    file_content = f.read()
+                context_parts.append(f"CURRENT FILE CONTENT:\n```python\n{file_content}\n```")
+            except Exception as e:
+                logger.warning(f"Could not read target file: {e}")
+        
+        context = "\n".join(context_parts) if context_parts else "No previous context."
+        return context
+
     def test_connection(self) -> bool:
-        """Test connection to Ollama service."""
+        """Test connection to Ollama."""
         return self.ollama.test_connection()
     
-    def generate_code(self, request: CodeRequest) -> CodeResponse:
-        """Generate code based on request."""
-        logger.info(f"Generating code for: {request.description[:100]}...")
-        
-        # Get response from Ollama
-        response = self.ollama.generate_chat_response(request)
-        
-        if response.success:
-            # Extract code blocks from response
-            code_blocks = self._extract_code_blocks(response.content)
-            response.code_blocks = code_blocks
-            
-            logger.info(f"Generated {len(code_blocks)} code blocks")
-        
-        return response
-    
-    def improve_code_recursively(self, code: str, max_cycles: Optional[int] = None) -> List[CodeResponse]:
-        """Recursively improve code through multiple iterations."""
-        if max_cycles is None:
-            max_cycles = self.settings.max_improvement_cycles
-        
-        improvements = []
-        current_code = code
-        
-        for cycle in range(max_cycles):
-            logger.info(f"Improvement cycle {cycle + 1}/{max_cycles}")
-            
-            # Create improvement request
-            improvement_prompt = f"""
-            Analyze the following code and provide improvements:
-            
-            ```
-            {current_code}
-            ```
-            
-            Focus on:
-            1. Performance optimizations
-            2. Code quality improvements
-            3. Security vulnerabilities
-            4. Best practices compliance
-            5. Refactoring opportunities
-            
-            Provide the improved version of the code.
-            """
-            
-            request = CodeRequest(
-                description=improvement_prompt,
-                prompt_type=PromptType.RECURSIVE_IMPROVEMENT,
-                temperature=0.1
-            )
-            
-            response = self.generate_code(request)
-            
-            if response.success and response.code_blocks:
-                # Use the first code block as the improved version
-                current_code = response.code_blocks[0].code
-                improvements.append(response)
-            else:
-                logger.warning(f"Improvement cycle {cycle + 1} failed")
-                break
-        
-        return improvements
-    
-    def break_down_task(self, task_description: str) -> CodeResponse:
-        """Break down complex task into manageable subtasks."""
-        breakdown_prompt = f"""
-        Analyze the following complex software development task and break it down:
-        
-        TASK: {task_description}
-        
-        Provide:
-        1. Main task analysis
-        2. Subtask list (ordered by priority)
-        3. Required technologies for each subtask
-        4. Estimated effort
-        5. Dependency analysis
-        6. Risk assessment
-        
-        Then create code examples for the highest priority subtask.
+    def generate_code_stream(self, prompt: str, context: Optional[str] = None) -> Iterator[str]:
         """
+        Generate code from a prompt, streaming the response.
+        Includes the loaded prompt template and conversation context.
+        """
+        is_edit = self._is_edit_request(prompt)
+        template_key = 'code_editing_template' if is_edit else 'code_creation_template'
         
-        request = CodeRequest(
-            description=breakdown_prompt,
-            prompt_type=PromptType.TASK_DECOMPOSITION,
-            temperature=0.2
-        )
+        if not self.prompt_templates or template_key not in self.prompt_templates:
+            logger.error("Prompt template could not be loaded. Using fallback.")
+            fallback_prompt = f"USER_REQUEST: {prompt}"
+            return self.ollama.stream_chat_completion(prompt=fallback_prompt)
+
+        prompt_template = self.prompt_templates[template_key]
         
-        return self.generate_code(request)
-    
-    def save_code_blocks(self, code_blocks: List[CodeBlock], task_name: str) -> List[str]:
-        """Save code blocks to files."""
-        saved_files = []
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_dir = Path(self.settings.output_directory) / f"{task_name}_{timestamp}"
-        output_dir.mkdir(parents=True, exist_ok=True)
+        # Build context for the prompt
+        final_prompt = ""
+        if is_edit:
+            target_file = self._find_mentioned_file(prompt) or self.last_generated_file
+            if target_file and os.path.exists(target_file):
+                try:
+                    with open(target_file, 'r', encoding='utf-8') as f:
+                        file_content = f.read()
+                    
+                    context_summary = self._get_context_summary()
+                    
+                    final_prompt = prompt_template.format(
+                        user_request=prompt,
+                        context=context_summary,
+                        file_to_edit=target_file,
+                        file_content=file_content
+                    )
+                    
+                    # Ensure we update this file later
+                    self.last_generated_file = target_file
+                    
+                except Exception as e:
+                    logger.error(f"Error reading target file for editing: {e}")
+                    is_edit = False # Fallback to creation
+            else:
+                is_edit = False # Fallback to creation if file not found
         
-        for i, block in enumerate(code_blocks):
-            # Determine file extension
-            extension = FILE_EXTENSIONS.get(block.language.value, ".txt")
-            filename = f"block_{i+1}_{block.language.value}{extension}"
-            filepath = output_dir / filename
+        if not is_edit:
+             context_summary = self._get_context_summary()
+             final_prompt = self.prompt_templates['code_creation_template'].format(
+                 user_request=prompt,
+                 context=context_summary
+             )
+
+        # Store in conversation context
+        self.conversation_context.append({
+            'user': prompt,
+            'timestamp': datetime.now().isoformat()
+        })
+        
+        return self.ollama.stream_chat_completion(prompt=final_prompt)
+        
+    def process_and_save_response(self, full_response: str, prompt: str) -> Dict[str, any]:
+        """
+        Process the full response string, parse it, and save the file.
+        This method is now the single source of truth for handling model output.
+        """
+        filename = "generated_code.py" # Default
+        code = None # Code must be explicitly found
+        
+        try:
+            filename_match = re.search(r'\[filename\]:\s*([\w/.-]+\.py)', full_response, re.IGNORECASE)
+            if filename_match:
+                filename = filename_match.group(1).strip()
             
-            # Write code to file
-            with open(filepath, 'w', encoding='utf-8') as f:
-                f.write(block.code)
-            
-            saved_files.append(str(filepath))
-            logger.info(f"Code saved to: {filepath}")
+            # STRICT PARSING: Only accept code inside a proper code block.
+            code_match = re.search(r'```(?:\w+)?\n(.*?)\n```', full_response, re.DOTALL)
+            if code_match:
+                code = code_match.group(1).strip()
+            else:
+                logger.warning("No valid code block found in the model's response.")
+                # Do not save if no code block is found.
+                return { "saved_file": None, "error": "No valid code block found." }
+
+        except Exception as e:
+            logger.error(f"Error parsing structured response: {e}")
+            return { "saved_file": None, "error": f"Parsing error: {e}" }
         
-        return saved_files
-    
-    def clear_conversation_history(self) -> None:
-        """Clear conversation history."""
-        self.ollama.clear_conversation_history()
-    
-    def _extract_code_blocks(self, content: str) -> List[CodeBlock]:
-        """Extract code blocks from markdown-formatted content."""
-        code_blocks = []
-        pattern = r'```(\w+)?\n(.*?)\n```'
-        matches = re.findall(pattern, content, re.DOTALL)
+        # Determine if this is an edit or a new file, and save accordingly
+        saved_file = None
+        if self._is_edit_request(prompt):
+            target_file = self.last_generated_file
+            if target_file and os.path.exists(target_file):
+                saved_file = self._update_existing_file(target_file, code)
+            else:
+                logger.warning(f"Edit request for non-existent file '{target_file}'. Saving as new file.")
+                saved_file = self._save_code(filename, code, prompt)
+        else:
+            saved_file = self._save_code(filename, code, prompt)
         
-        for i, (language, code) in enumerate(matches):
-            # Map language string to CodeLanguage enum
-            lang = self._map_language(language or "text")
-            
-            code_blocks.append(CodeBlock(
-                id=f"block_{i+1}",
-                language=lang,
-                code=code.strip()
-            ))
+        # Update state for the next command
+        if saved_file:
+            self.last_generated_file = saved_file
+            # Update conversation context with the successful action
+            if self.conversation_context:
+                self.conversation_context[-1]['result'] = f"File saved to: {saved_file}"
         
-        return code_blocks
-    
-    def _map_language(self, language_str: str) -> CodeLanguage:
-        """Map language string to CodeLanguage enum."""
-        language_mapping = {
-            "py": CodeLanguage.PYTHON,
-            "python": CodeLanguage.PYTHON,
-            "js": CodeLanguage.JAVASCRIPT,
-            "javascript": CodeLanguage.JAVASCRIPT,
-            "ts": CodeLanguage.TYPESCRIPT,
-            "typescript": CodeLanguage.TYPESCRIPT,
-            "java": CodeLanguage.JAVA,
-            "cpp": CodeLanguage.CPP,
-            "c++": CodeLanguage.CPP,
-            "c": CodeLanguage.C,
-            "go": CodeLanguage.GO,
-            "golang": CodeLanguage.GO,
-            "rust": CodeLanguage.RUST,
-            "rs": CodeLanguage.RUST,
-            "php": CodeLanguage.PHP,
-            "ruby": CodeLanguage.RUBY,
-            "rb": CodeLanguage.RUBY,
-            "cs": CodeLanguage.CSHARP,
-            "csharp": CodeLanguage.CSHARP,
-            "html": CodeLanguage.HTML,
-            "css": CodeLanguage.CSS,
-            "sql": CodeLanguage.SQL,
-            "bash": CodeLanguage.BASH,
-            "sh": CodeLanguage.SHELL,
-            "shell": CodeLanguage.SHELL,
+        return {
+            "full_response": full_response,
+            "saved_file": saved_file,
+            "parsed_filename": filename,
+            "parsed_code": code
         }
+
+    def _update_existing_file(self, file_path: str, new_code: str) -> Optional[str]:
+        """Update an existing file with new code."""
+        try:
+            # Create backup
+            backup_path = f"{file_path}.backup"
+            with open(file_path, 'r', encoding='utf-8') as f:
+                original_content = f.read()
+            with open(backup_path, 'w', encoding='utf-8') as f:
+                f.write(original_content)
+            
+            # Write new code
+            with open(file_path, 'w', encoding='utf-8') as f:
+                f.write(new_code)
+            
+            logger.info(f"Updated existing file: {file_path} (backup: {backup_path})")
+            return file_path
+            
+        except Exception as e:
+            logger.error(f"Failed to update existing file: {e}")
+            return None
+    
+    def _save_code(self, filename: str, code: str, prompt: str) -> Optional[str]:
+        """
+        Save a single block of code to a stable directory, preventing subdirectories.
+        This is a critical function for maintaining project state.
+        """
+        try:
+            output_dir = Path("generated_code")
+            output_dir.mkdir(exist_ok=True)
+            
+            # CRITICAL: Sanitize filename to prevent any directory creation.
+            # We only want the final part of the path (the basename).
+            safe_basename = os.path.basename(filename)
+            safe_basename = re.sub(r'[^\w\.-]', '', safe_basename)
+
+            # If the resulting name is empty or just a dot, fallback to a prompt-based name.
+            if not safe_basename or safe_basename == '.':
+                 safe_prompt = re.sub(r'[^\w\s-]', '', prompt)[:30].strip()
+                 safe_prompt = re.sub(r'[-\s]+', '_', safe_prompt)
+                 safe_basename = f"{safe_prompt or 'untitled'}.py"
+
+            file_path = output_dir / safe_basename
+            
+            # To prevent accidental overwrites on NEW file creation, add a timestamp if it exists.
+            # Updates to existing files are handled by _update_existing_file.
+            if file_path.exists():
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                base, ext = os.path.splitext(safe_basename)
+                file_path = output_dir / f"{base}_{timestamp}{ext}"
+
+            with open(file_path, 'w', encoding='utf-8') as f:
+                f.write(code)
+            
+            logger.info(f"Code saved to: {file_path}")
+            return str(file_path)
+            
+        except Exception as e:
+            logger.error(f"Failed to save code: {e}")
+            return None
+
+    def _get_context_summary(self) -> str:
+        """Build a summary of the conversation history for context."""
+        if not self.conversation_context:
+            return "No previous conversation history."
         
-        return language_mapping.get(language_str.lower(), CodeLanguage.PYTHON) 
+        summary_parts = []
+        for i, ctx in enumerate(self.conversation_context[-3:], 1):
+            summary_parts.append(f"{i}. User: {ctx['user']}")
+            if ctx.get('result'):
+                summary_parts.append(f"   Result: {ctx['result']}")
+        
+        return "\n".join(summary_parts) 

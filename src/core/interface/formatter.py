@@ -4,7 +4,7 @@ Provides clean, consistent formatting for terminal display.
 """
 
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 
 from rich.text import Text
 from rich.table import Table
@@ -151,41 +151,33 @@ class UIFormatter:
             logger.error(f"Failed to format session summary: {e}")
             return Text("Session completed successfully!")
     
-    def format_system_metrics(self, metrics: Dict[str, Any]) -> Table:
-        """Format system metrics in a professional table."""
+    def format_simple_status(self, metrics: Dict[str, Any]) -> str:
+        """Format simple status line for minimal UI."""
         try:
-            table = Table(title="🖥️ System Status", show_header=True, header_style="bold magenta")
-            table.add_column("Resource", style="cyan", no_wrap=True)
-            table.add_column("Usage", style="white")
-            table.add_column("Status", justify="center")
+            status_parts = []
             
-            # Memory usage
+            # Memory
             memory_mb = metrics.get('memory_usage_mb', 0)
-            memory_status = self._get_status_indicator(memory_mb, [500, 1000])
-            table.add_row("Memory", f"{memory_mb} MB", memory_status)
+            status_parts.append(f"Mem: {memory_mb}MB")
             
-            # CPU usage
+            # CPU
             cpu_percent = metrics.get('cpu_usage_percent', 0)
-            cpu_status = self._get_status_indicator(cpu_percent, [50, 80])
-            table.add_row("CPU", f"{cpu_percent}%", cpu_status)
+            status_parts.append(f"CPU: {cpu_percent}%")
             
             # Model connection
             model_connected = metrics.get('ollama_connected', False)
-            model_status = "🟢 Connected" if model_connected else "🔴 Disconnected"
-            table.add_row("Model Service", model_status, "")
+            model_status = "✓" if model_connected else "✗"
+            status_parts.append(f"Model: {model_status}")
             
-            # Session info
+            # Conversations
             conversations = metrics.get('conversation_turns', 0)
-            table.add_row("Conversations", str(conversations), "")
+            status_parts.append(f"Chats: {conversations}")
             
-            uptime = metrics.get('uptime', '0s')
-            table.add_row("Uptime", uptime, "")
-            
-            return table
+            return " | ".join(status_parts)
             
         except Exception as e:
-            logger.error(f"Failed to format system metrics: {e}")
-            return Table()
+            logger.error(f"Failed to format status: {e}")
+            return "Status: Unknown"
     
     def format_error_message(self, error: str, context: str = None) -> Panel:
         """Format professional error message."""

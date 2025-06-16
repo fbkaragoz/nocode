@@ -4,109 +4,43 @@ Settings and configuration management for the auto coder system.
 
 import os
 import yaml
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 
 class Settings:
-    """Configuration settings manager."""
+    """
+    Configuration settings manager.
+    - Simplified to use a hardcoded default configuration.
+    - No longer loads from external YAML files to ensure stability.
+    """
     
-    def __init__(self, config_file: Optional[str] = None):
-        """Initialize settings with optional config file."""
-        self.config_file = config_file or "config.yaml"
-        self._config = {}
-        self.load_config()
-    
-    def load_config(self) -> None:
-        """Load configuration from YAML file."""
-        try:
-            if os.path.exists(self.config_file):
-                with open(self.config_file, 'r', encoding='utf-8') as f:
-                    self._config = yaml.safe_load(f) or {}
-            else:
-                self._config = self._get_default_config()
-                self.save_config()
-        except Exception as e:
-            print(f"Warning: Could not load config file. Using defaults. Error: {e}")
-            self._config = self._get_default_config()
-    
-    def save_config(self) -> None:
-        """Save current configuration to file."""
-        try:
-            with open(self.config_file, 'w', encoding='utf-8') as f:
-                yaml.dump(self._config, f, default_flow_style=False, indent=2)
-        except Exception as e:
-            print(f"Warning: Could not save config file. Error: {e}")
+    def __init__(self):
+        """Initialize settings with a default configuration."""
+        self._config = self._get_default_config()
     
     def _get_default_config(self) -> Dict[str, Any]:
         """Get default configuration."""
         return {
             "ollama": {
-                "base_url": "http://127.0.0.1:11434",
+                "base_url": "http://127.0.0.1:11434/api",
                 "model_name": "huihui_ai/deepseek-r1-Fusion:32b-coder-9010",
                 "timeout": 300,
-                "max_retries": 3
-            },
-            "model_params": {
-                "temperature": 0.1,
+                "history_size": 10,
+                "temperature": 0.7,
                 "top_p": 0.9,
                 "top_k": 40,
-                "max_tokens": 4096,
-                "context_length": 8192
-            },
-            "recursive_improvement": {
-                "max_cycles": 3,
-                "improvement_threshold": 0.1,
-                "analysis_depth": "deep"
             },
             "code_generation": {
                 "output_directory": "generated_code",
-                "save_format": "organized",
-                "auto_save": False,
-                "file_extensions": {
-                    "python": ".py",
-                    "javascript": ".js",
-                    "typescript": ".ts",
-                    "html": ".html",
-                    "css": ".css",
-                    "java": ".java",
-                    "cpp": ".cpp",
-                    "go": ".go",
-                    "rust": ".rs",
-                    "php": ".php",
-                    "sql": ".sql"
-                }
+                "auto_save": True,
             },
             "logging": {
                 "level": "INFO",
                 "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
                 "file": "auto_coder.log",
-                "max_size": "10MB",
-                "backup_count": 5,
-                "quiet_mode": False
-            },
-            "performance": {
-                "track_token_usage": True,
-                "track_response_time": True,
-                "track_memory_usage": False,
-                "benchmark_mode": False
             },
             "ui": {
-                "interface_type": "simple",
-                "show_performance_metrics": True,
-                "enable_syntax_highlighting": False,
-                "auto_save_prompt": True
-            },
-            "security": {
-                "code_analysis": True,
-                "vulnerability_check": True,
-                "safe_execution": False,
-                "allowed_operations": ["read", "write", "execute"]
-            },
-            "advanced": {
-                "plugin_system": False,
-                "multi_model_support": False,
-                "cloud_integration": False,
-                "team_collaboration": False
+                "refresh_rate": 10,
             }
         }
     
@@ -138,12 +72,12 @@ class Settings:
     @property
     def ollama_url(self) -> str:
         """Get Ollama base URL."""
-        return self.get("ollama.base_url", "http://127.0.0.1:11434")
+        return self.get("ollama.base_url", "http://127.0.0.1:11434/api")
     
     @property
     def model_name(self) -> str:
         """Get model name."""
-        return self.get("ollama.model_name", "huihui_ai/deepseek-r1-Fusion:32b-coder-9010")
+        return self.get("ollama.model_name", "qwen:0.5b")
     
     @property
     def timeout(self) -> int:
@@ -151,14 +85,24 @@ class Settings:
         return self.get("ollama.timeout", 300)
     
     @property
-    def temperature(self) -> float:
-        """Get model temperature."""
-        return self.get("model_params.temperature", 0.1)
+    def history_size(self) -> int:
+        """Get history size."""
+        return self.get("ollama.history_size", 10)
     
     @property
-    def max_tokens(self) -> int:
-        """Get maximum tokens."""
-        return self.get("model_params.max_tokens", 4096)
+    def temperature(self) -> float:
+        """Get temperature."""
+        return self.get("ollama.temperature", 0.7)
+    
+    @property
+    def top_p(self) -> float:
+        """Get top_p."""
+        return self.get("ollama.top_p", 0.9)
+    
+    @property
+    def top_k(self) -> int:
+        """Get top_k."""
+        return self.get("ollama.top_k", 40)
     
     @property
     def output_directory(self) -> str:
@@ -166,6 +110,121 @@ class Settings:
         return self.get("code_generation.output_directory", "generated_code")
     
     @property
-    def max_improvement_cycles(self) -> int:
-        """Get maximum improvement cycles."""
-        return self.get("recursive_improvement.max_cycles", 3) 
+    def auto_save(self) -> bool:
+        """Get auto_save."""
+        return self.get("code_generation.auto_save", True)
+    
+    @property
+    def refresh_rate(self) -> int:
+        """Get refresh rate."""
+        return self.get("ui.refresh_rate", 10)
+    
+    @property
+    def logging_level(self) -> str:
+        """Get logging level."""
+        return self.get("logging.level", "INFO")
+    
+    @property
+    def logging_format(self) -> str:
+        """Get logging format."""
+        return self.get("logging.format", "%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    
+    @property
+    def logging_file(self) -> str:
+        """Get logging file."""
+        return self.get("logging.file", "auto_coder.log")
+    
+    @property
+    def performance_track_token_usage(self) -> bool:
+        """Get performance track_token_usage."""
+        return self.get("performance.track_token_usage", True)
+    
+    @property
+    def performance_track_response_time(self) -> bool:
+        """Get performance track_response_time."""
+        return self.get("performance.track_response_time", True)
+    
+    @property
+    def performance_track_memory_usage(self) -> bool:
+        """Get performance track_memory_usage."""
+        return self.get("performance.track_memory_usage", False)
+    
+    @property
+    def performance_benchmark_mode(self) -> bool:
+        """Get performance benchmark_mode."""
+        return self.get("performance.benchmark_mode", False)
+    
+    @property
+    def ui_interface_type(self) -> str:
+        """Get ui interface_type."""
+        return self.get("ui.interface_type", "simple")
+    
+    @property
+    def ui_show_performance_metrics(self) -> bool:
+        """Get ui show_performance_metrics."""
+        return self.get("ui.show_performance_metrics", True)
+    
+    @property
+    def ui_enable_syntax_highlighting(self) -> bool:
+        """Get ui enable_syntax_highlighting."""
+        return self.get("ui.enable_syntax_highlighting", False)
+    
+    @property
+    def ui_auto_save_prompt(self) -> bool:
+        """Get ui auto_save_prompt."""
+        return self.get("ui.auto_save_prompt", True)
+    
+    @property
+    def security_code_analysis(self) -> bool:
+        """Get security code_analysis."""
+        return self.get("security.code_analysis", True)
+    
+    @property
+    def security_vulnerability_check(self) -> bool:
+        """Get security vulnerability_check."""
+        return self.get("security.vulnerability_check", True)
+    
+    @property
+    def security_safe_execution(self) -> bool:
+        """Get security safe_execution."""
+        return self.get("security.safe_execution", False)
+    
+    @property
+    def security_allowed_operations(self) -> List[str]:
+        """Get security allowed_operations."""
+        return self.get("security.allowed_operations", ["read", "write", "execute"])
+    
+    @property
+    def advanced_plugin_system(self) -> bool:
+        """Get advanced plugin_system."""
+        return self.get("advanced.plugin_system", False)
+    
+    @property
+    def advanced_multi_model_support(self) -> bool:
+        """Get advanced multi_model_support."""
+        return self.get("advanced.multi_model_support", False)
+    
+    @property
+    def advanced_cloud_integration(self) -> bool:
+        """Get advanced cloud_integration."""
+        return self.get("advanced.cloud_integration", False)
+    
+    @property
+    def advanced_team_collaboration(self) -> bool:
+        """Get advanced team_collaboration."""
+        return self.get("advanced.team_collaboration", False)
+    
+    @property
+    def recursive_improvement_max_cycles(self) -> int:
+        """Get recursive_improvement max_cycles."""
+        return self.get("recursive_improvement.max_cycles", 3)
+    
+    @property
+    def recursive_improvement_improvement_threshold(self) -> float:
+        """Get recursive_improvement improvement_threshold."""
+        return self.get("recursive_improvement.improvement_threshold", 0.1)
+    
+    @property
+    def recursive_improvement_analysis_depth(self) -> str:
+        """Get recursive_improvement analysis_depth."""
+        return self.get("recursive_improvement.analysis_depth", "deep") 

@@ -1,119 +1,84 @@
-# 🚀 AI Code Generation System
+# 🚀 Auto-Coder: A Streaming-First Local AI Coding Assistant
 
-High-performance AI-powered code generation system using **DeepSeek R1** with **GPU acceleration**.
+This project is a simple, streaming-first AI code generation system designed to run entirely on your local machine using Ollama and your own GPU. It provides a terminal-based interface to interact with a local language model for generating and editing code.
 
-## ✨ **Key Features**
+## ✨ Core Features
 
-- **🧠 Extended Context**: 131k tokens for complex projects
-- **⚡ GPU Acceleration**: Optimized for NVIDIA, AMD, and Intel GPUs
-- **🔄 Multi-Step Projects**: Automatic project breakdown and execution
-- **📊 Analytics Dashboard**: Real-time system monitoring
-- **💾 Smart Organization**: Automatic code saving with timestamps
-- **🔍 System Monitoring**: CPU/Memory/GPU usage tracking
-- **🎯 Multi-Language**: Python, JavaScript, TypeScript, Java, C++, Go, Rust
+- **🧠 Local First**: Works entirely offline with your local Ollama instance. No data leaves your machine.
+- **⚡ Streaming Responses**: See the code being generated in real-time, character by character.
+- **📝 File Editing & Context**: The system can remember the last file it created. You can ask it to fix or modify that file, and it will read the content, understand the context, and update it.
+- **🐍 Python Focused**: Optimized for generating and editing Python scripts.
+- **🔧 Clean Architecture**: A simple, understandable architecture that separates concerns (CLI, Engine, Services).
 
-## 🚦 **Quick Start**
+## 🚦 Quick Start
 
-### Prerequisites
+### 1. Prerequisites
+
+- **Ollama**: Ensure [Ollama](https://ollama.ai/) is installed and running.
+- **A Language Model**: Pull a model suitable for coding.
+  ```bash
+  # Recommended: A powerful, instruction-tuned model
+  ollama pull huihui_ai/deepseek-r1-Fusion:32b-coder-9010
+  
+  # A smaller alternative
+  ollama pull deepseek-coder:6.7b
+  ```
+- **Python Environment**: Python 3.9+ is recommended.
+
+### 2. Installation
 
 ```bash
-# GPU driver (NVIDIA/AMD/Intel)
-# For NVIDIA: nvidia-smi
-# For AMD: rocm-smi
-# For Intel: intel_gpu_top
-
-# Ollama with DeepSeek R1
-ollama pull huihui_ai/deepseek-r1-Fusion:32b-coder-9010
-```
-
-### Installation
-
-```bash
-git clone <repository>
+# Clone the repository
+git clone <repository_url>
 cd nocode
-conda env create -f environment.yml
-conda activate nocode_env
+
+# Create a virtual environment (optional but recommended)
+python -m venv venv
+source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
+
+# Install dependencies
+pip install -r requirements.txt
 ```
 
-### Usage
+### 3. Configuration
 
+The model used is hardcoded in `src/config/settings.py`. Open this file and change the `model_name` to the one you have downloaded in Ollama.
+
+### 4. Usage
+
+Simply run the application from your terminal:
 ```bash
-# Standard mode
 python run.py
-
-# Analytics dashboard mode
-python run.py --analytics
-
-# Multi-step project mode
-python run.py --project
-
-# Minimal interface mode
-python run.py --minimal
-
-# Combined modes
-python run.py --analytics --project
 ```
+The application will start, and you can begin giving it coding instructions.
 
-## 🎮 **Interface Modes**
+## 🎮 How to Use
 
-### **Standard Mode** (Default)
-- Clean terminal interface with periodic status updates
-- Automatic code saving to `generated_code/`
-- Real-time performance monitoring
+### Creating a New File
+Simply ask for what you want to create.
+> `create a simple snake game in python`
 
-### **Analytics Dashboard Mode** (`--analytics`)
-- **Main Terminal**: User interaction and code generation
-- **Analytics Dashboard**: Live system monitoring in separate window
-  - CPU/Memory/GPU metrics (NVIDIA/AMD/Intel support)
-  - Project progress tracking  
-  - Network and disk usage
-  - Real-time performance charts
+The system will generate the code and save it under the `generated_code/` directory.
 
-### **Project Mode** (`--project`)
-- Automatic project breakdown into steps
-- Step-by-step execution with dependencies
-- Progress tracking across project phases
-- Multi-file project organization
+### Editing an Existing File
+After a file is created, you can ask the system to fix or modify it.
+> `the game ended with an error, can you fix @simple_snake_game.py`
 
-### **Minimal Mode** (`--minimal`)
-- Streamlined interface for low-resource environments
-- Essential features only
-- Reduced visual elements
+The system will read the specified file, provide the context to the model, and overwrite the existing file with the corrected version. A `.backup` of the old file will be created automatically.
 
-## 📊 **System Requirements**
+## 🏗️ Simplified Architecture
 
-### **Minimum**
-- Linux (Ubuntu 20.04+)
-- 16GB RAM
-- GPU with 8GB+ VRAM (NVIDIA/AMD/Intel)
-- Python 3.8+
+- **`run.py`**: The main entry point.
+- **`src/core/cli/`**: Manages the user interface and command flow.
+  - `cli_manager.py`: The main loop for the CLI.
+  - `command_processor.py`: Orchestrates requests to the engine.
+- **`src/core/auto_coder.py`**: The "brain" of the application. It talks to the AI model and handles all file I/O (saving, editing, backups).
+- **`src/services/ollama_service.py`**: Handles all communication with the Ollama API.
+- **`src/config/settings.py`**: A simple class for application settings.
+- **`.secrets/prompts.yaml`**: Contains the structured instruction templates sent to the AI.
+- **`generated_code/`**: The output directory for all generated files.
 
-### **Recommended**
-- Linux (Ubuntu 22.04+)
-- 32GB+ RAM
-- High-end GPU with 16GB+ VRAM
-- Python 3.10+
-- NVMe SSD storage
-
-## 🏗️ **Architecture**
-
-```
-├── Core Engine
-│   ├── AutoCoderEngine     # Main AI interface
-│   ├── ProjectManager      # Multi-step projects
-│   └── StreamManager       # Real-time streaming
-├── Display Layer
-│   ├── DisplayManager      # Professional UI coordinator
-│   ├── UIFormatter         # Clean formatting utilities
-│   └── AnalyticsDisplay    # System monitoring dashboard
-├── Services
-│   ├── OllamaService      # Model communication
-│   └── SystemMonitor     # Performance tracking
-└── Storage
-    ├── generated_code/    # Auto-saved projects
-    ├── logs/             # Session logs
-    └── cache/            # Performance cache
-```
+This project serves as a solid foundation for building more complex, autonomous coding agents.
 
 ## 🎯 **Example Commands**
 
@@ -222,4 +187,71 @@ MIT License - See LICENSE file for details.
 
 ---
 
-**🔥 Powered by DeepSeek R1 + GPU acceleration for maximum performance** 
+**🔥 Powered by DeepSeek R1 + GPU acceleration for maximum performance**
+
+# Professional AI Code Generation System
+
+## ✨ Enterprise-Grade Security & IP Protection
+
+This system implements a professional architecture with **complete IP protection**:
+
+- **🔒 Zero Hardcoded Instructions**: All AI behaviors loaded from secure, encrypted sources
+- **🎯 Dynamic Model Parameters**: Auto-configured based on system resources and request complexity
+- **🛡️ IP-Protected Behaviors**: Proprietary AI instructions never exposed in public codebase
+- **⚡ Resource-Aware Optimization**: Automatic scaling based on available hardware
+- **🔄 Fallback Safety**: Graceful degradation when secure sources unavailable
+
+## 🏗️ Security Architecture
+
+```
+📁 .secrets/                    # NEVER COMMITTED - IP Protected
+├── behavior_profiles.yaml      # Proprietary AI behavior definitions
+└── [encrypted_instructions]    # Additional secure configurations
+
+📁 src/core/
+├── behavior_loader.py          # Secure IP loading system
+├── model_context_manager.py    # Dynamic parameter management  
+└── secure_prompt_manager.py    # IP-protected prompt coordination
+
+📁 config/
+└── app.yaml                    # General settings only (no IP content)
+```
+
+## 🚀 Dynamic Configuration
+
+### Automatic Resource Detection
+- **System Analysis**: CPU, Memory, GPU capabilities
+- **Resource Tiers**: Low → Medium → High → Enterprise
+- **Performance Optimization**: Context length and token limits auto-adjusted
+
+### Request Complexity Analysis
+- **Simple**: Basic scripts, quick fixes
+- **Moderate**: Standard applications, refactoring
+- **Complex**: Multi-file projects, architecture design
+- **Enterprise**: Production systems, security-critical code
+
+### Model Parameter Optimization
+```python
+# NO MORE HARDCODED VALUES!
+ModelConfig(
+    context_length=auto_detected,    # Based on available resources
+    max_tokens=complexity_adjusted,   # Scaled by request complexity
+    temperature=task_optimized,       # Adjusted for code vs creative tasks
+    buffer_ratio=performance_tuned    # Memory management
+)
+```
+
+## 🛡️ IP Protection Features
+
+### Zero-Trust Architecture
+- ✅ **No hardcoded prompts** in source code
+- ✅ **No hardcoded model parameters** anywhere
+- ✅ **Secure behavior loading** with validation
+- ✅ **Encrypted instruction storage** (.secrets/ directory)
+- ✅ **Automatic security validation** on startup
+
+### Production-Ready Security
+- **Fallback Mechanisms**: System works with minimal functionality if secrets unavailable
+- **Security Status Monitoring**: Real-time validation of IP protection
+- **Access Control**: Behavior profiles only accessible through secure loader
+- **Audit Trail**: All security events logged for compliance 
