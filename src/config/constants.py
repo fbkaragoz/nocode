@@ -8,6 +8,10 @@ from enum import Enum
 class PromptType(Enum):
     """Enum for different prompt types."""
     CODE_GENERATION = "code_generation"
+    GENERATE = "generate"
+    IMPROVE = "improve"
+    BREAKDOWN = "breakdown"
+    EXPLAIN = "explain"
     CODE_REVIEW = "code_review"
     RECURSIVE_IMPROVEMENT = "recursive_improvement"
     TASK_DECOMPOSITION = "task_decomposition"

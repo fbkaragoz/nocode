@@ -106,6 +106,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+nocode_env/
 
 # Spyder project settings
 .spyderproject
@@ -164,6 +165,7 @@ models/ollama-coder/
 # Configuration overrides
 config.local.yaml
 .env.local
+.env.production
 
 # AI Model files
 *.bin
@@ -176,3 +178,8 @@ config.local.yaml
 *.tar.gz
 *.zip
 *.rar
+
+# Project specific directories
+tmp/
+cache/
+logs/

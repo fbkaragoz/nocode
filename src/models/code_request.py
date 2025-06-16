@@ -13,8 +13,9 @@ from config.constants import PromptType, CodeLanguage
 class CodeRequest:
     """Represents a code generation request."""
     
-    prompt: str
+    description: str  # Main description/prompt
     prompt_type: PromptType = PromptType.CODE_GENERATION
+    language: str = "auto-detect"  # Simplified language field
     target_language: Optional[CodeLanguage] = None
     context: Optional[str] = None
     requirements: Optional[List[str]] = field(default_factory=list)
@@ -24,11 +25,17 @@ class CodeRequest:
     created_at: datetime = field(default_factory=datetime.now)
     metadata: Dict[str, Any] = field(default_factory=dict)
     
+    @property
+    def prompt(self) -> str:
+        """Backward compatibility property."""
+        return self.description
+    
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary representation."""
         return {
-            "prompt": self.prompt,
+            "description": self.description,
             "prompt_type": self.prompt_type.value if self.prompt_type else None,
+            "language": self.language,
             "target_language": self.target_language.value if self.target_language else None,
             "context": self.context,
             "requirements": self.requirements,
@@ -56,8 +63,9 @@ class CodeRequest:
             created_at = datetime.fromisoformat(data["created_at"])
         
         return cls(
-            prompt=data["prompt"],
+            description=data.get("description", data.get("prompt", "")),
             prompt_type=prompt_type,
+            language=data.get("language", "auto-detect"),
             target_language=target_language,
             context=data.get("context"),
             requirements=data.get("requirements", []),
@@ -70,4 +78,4 @@ class CodeRequest:
     
     def __str__(self) -> str:
         """String representation."""
-        return f"CodeRequest(prompt='{self.prompt[:50]}...', type={self.prompt_type}, lang={self.target_language})" 
+        return f"CodeRequest(description='{self.description[:50]}...', type={self.prompt_type}, lang={self.language})" 

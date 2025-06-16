@@ -6,20 +6,18 @@ Setup script for Advanced AI Code Generation System
 from setuptools import setup, find_packages
 import os
 
-# Read the contents of README file
 this_directory = os.path.abspath(os.path.dirname(__file__))
 with open(os.path.join(this_directory, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
-# Read requirements
 with open('requirements.txt') as f:
     requirements = f.read().splitlines()
 
 setup(
     name="advanced-ai-coder",
     version="1.0.0",
-    author="Fatih Karaağaç",
-    author_email="fbkaragoz@gmail.com",
+    author="Fatih Burak Karagöz",
+    author_email="fatihburak@pm.me",
     description="Enterprise-grade AI code generation system with Ollama and DeepSeek",
     long_description=long_description,
     long_description_content_type="text/markdown",

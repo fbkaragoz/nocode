@@ -25,6 +25,10 @@ class OllamaService:
         self.session = requests.Session()
         self.conversation_history: List[Dict[str, str]] = []
         
+    def test_connection(self) -> bool:
+        """Test connection to Ollama service."""
+        return self.check_connection()
+    
     def check_connection(self) -> bool:
         """Check if Ollama service is available."""
         try:

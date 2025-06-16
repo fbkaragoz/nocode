@@ -76,6 +76,24 @@ class CodeResponse:
     created_at: datetime = field(default_factory=datetime.now)
     metadata: Dict[str, Any] = field(default_factory=dict)
     
+    @property
+    def generated_code(self) -> str:
+        """Get generated code content."""
+        return self.content
+    
+    @property
+    def confidence(self) -> float:
+        """Get confidence score (0.0 to 1.0)."""
+        # Simple confidence based on success and content length
+        if not self.success:
+            return 0.0
+        if not self.content.strip():
+            return 0.1
+        # Basic heuristic: longer responses with code blocks = higher confidence
+        base_confidence = 0.7 if self.code_blocks else 0.5
+        length_bonus = min(len(self.content) / 1000, 0.3)  # Up to 0.3 bonus
+        return min(base_confidence + length_bonus, 1.0)
+    
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary representation."""
         return {

@@ -4,7 +4,7 @@ Core Auto Coder Engine with recursive improvement and task decomposition.
 
 import logging
 import re
-from typing import List, Dict, Any, Optional
+from typing import List, Optional
 from datetime import datetime
 from pathlib import Path
 
@@ -21,14 +21,18 @@ logger = logging.getLogger(__name__)
 class AutoCoderEngine:
     """Main engine for automatic code generation with advanced features."""
     
-    def __init__(self, settings: Settings, ollama_service: OllamaService):
+    def __init__(self, settings: Settings):
         """Initialize the auto coder engine."""
         self.settings = settings
-        self.ollama = ollama_service
+        self.ollama = OllamaService(settings)
+    
+    def test_connection(self) -> bool:
+        """Test connection to Ollama service."""
+        return self.ollama.test_connection()
     
     def generate_code(self, request: CodeRequest) -> CodeResponse:
         """Generate code based on request."""
-        logger.info(f"Generating code for: {request.prompt[:100]}...")
+        logger.info(f"Generating code for: {request.description[:100]}...")
         
         # Get response from Ollama
         response = self.ollama.generate_chat_response(request)
@@ -72,7 +76,7 @@ class AutoCoderEngine:
             """
             
             request = CodeRequest(
-                prompt=improvement_prompt,
+                description=improvement_prompt,
                 prompt_type=PromptType.RECURSIVE_IMPROVEMENT,
                 temperature=0.1
             )
@@ -108,7 +112,7 @@ class AutoCoderEngine:
         """
         
         request = CodeRequest(
-            prompt=breakdown_prompt,
+            description=breakdown_prompt,
             prompt_type=PromptType.TASK_DECOMPOSITION,
             temperature=0.2
         )
