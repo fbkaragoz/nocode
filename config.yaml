@@ -12,8 +12,8 @@ model_params:
   temperature: 0.1        # Düşük = tutarlı, Yüksek = yaratıcı
   top_p: 0.9
   top_k: 40
-  max_tokens: 4096
-  context_length: 8192
+  max_tokens: 8192        # Increased for longer responses
+  context_length: 131072  # Max context for DeepSeek R1 (131k)
 
 # Recursive İyileştirme
 recursive_improvement:

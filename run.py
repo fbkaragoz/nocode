@@ -75,12 +75,19 @@ def main():
             print("Make sure Ollama is running and accessible")
         
         # Parse command line arguments
-        interface_type = "split"  # Default to split interface
-        if len(sys.argv) > 1 and sys.argv[1] == "--standard":
-            interface_type = "enhanced"
+        interface_type = "enhanced"  # Default to standard interface (working)
+        project_mode = False
+        
+        for arg in sys.argv[1:]:
+            if arg == "--split":
+                interface_type = "split"
+            elif arg == "--dual":
+                interface_type = "dual" 
+            elif arg == "--project":
+                project_mode = True
         
         # Initialize and start CLI
-        cli_manager = CLIManager(engine, interface_type)
+        cli_manager = CLIManager(engine, interface_type, project_mode=project_mode)
         return cli_manager.start()
         
     except KeyboardInterrupt:

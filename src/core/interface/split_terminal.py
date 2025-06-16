@@ -95,21 +95,18 @@ class SplitTerminalInterface:
             logger.error(f"Failed to show welcome: {e}")
     
     def get_input(self, prompt_text: str = "") -> Optional[str]:
-        """Get user input with prompt."""
+        """Get user input with prompt in split interface."""
         try:
-            if not self.is_active:
-                return input(prompt_text or "Input: ")
+            # Show input prompt in main panel
+            prompt_panel = Panel(
+                f"[yellow]{prompt_text or 'What would you like me to code?'}[/yellow]\n[dim]Type your request below...[/dim]",
+                title="Input Required",
+                border_style="cyan"
+            )
+            self._update_main_panel(prompt_panel)
             
-            # Temporarily stop live display for input
-            if self.live_display:
-                self.live_display.stop()
-            
-            # Get input
-            user_input = input(f"\n{prompt_text or 'What would you like me to code?'}: ")
-            
-            # Restart live display
-            if self.live_display:
-                self.live_display.start()
+            # Get input from user
+            user_input = input("\n> ")
             
             # Add input to main panel history
             self._add_to_main_history(f"User: {user_input}")

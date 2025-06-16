@@ -5,15 +5,14 @@ Handles all terminal interface interactions with real-time streaming.
 
 import logging
 import os
-from typing import Dict, Any, Optional, List
-from datetime import datetime
+import time
+from typing import Dict, Any, Optional
 
 from rich.console import Console
 from rich.prompt import Prompt
 from rich.panel import Panel
 from rich.text import Text
 from rich.live import Live
-from rich.table import Table
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
 
 from .split_terminal import SplitTerminalInterface
@@ -182,11 +181,32 @@ class TerminalInterface:
                 self.split_interface.update_system_metrics(metrics)
                 return
             
-            # Store metrics silently - no continuous output
+            # Store metrics and show periodic status
             self.current_metrics = metrics
+            
+            # Show status every 10 seconds during conversation
+            if hasattr(self, 'last_status_time'):
+                if time.time() - self.last_status_time > 10:
+                    self._show_status_update(metrics)
+                    self.last_status_time = time.time()
+            else:
+                self.last_status_time = time.time()
                 
         except Exception as e:
             logger.error(f"Failed to update system metrics: {e}")
+    
+    def _show_status_update(self, metrics: Dict[str, Any]):
+        """Show periodic status update."""
+        try:
+            status_text = (
+                f"[dim]Status: Memory {metrics.get('memory_usage_mb', 0)}MB | "
+                f"CPU {metrics.get('cpu_usage_percent', 0)}% | "
+                f"Turns {metrics.get('conversation_turns', 0)} | "
+                f"Model {metrics.get('model_status', 'Unknown')}[/dim]"
+            )
+            self.console.print(status_text)
+        except Exception as e:
+            logger.error(f"Failed to show status: {e}")
     
     def show_progress(self, progress_percent: float, status_message: str = ""):
         """Show progress with progress bar."""

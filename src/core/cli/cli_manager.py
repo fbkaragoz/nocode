@@ -34,10 +34,11 @@ class CLIManager:
     - Maintain session state
     """
     
-    def __init__(self, engine: AutoCoderEngine, interface_type: str = "enhanced"):
+    def __init__(self, engine: AutoCoderEngine, interface_type: str = "enhanced", project_mode: bool = False):
         """Initialize CLI Manager with clean dependencies."""
         self.engine = engine
         self.interface_type = interface_type
+        self.project_mode = project_mode
         
         # Core components
         self.stream_manager = StreamManager()
@@ -45,6 +46,12 @@ class CLIManager:
         self.prompt_manager = PromptManager()
         self.command_processor = CommandProcessor(engine, self.stream_manager)
         self.input_handler = InputHandler(self.terminal_interface)
+        
+        # Project management (if enabled)
+        self.project_manager = None
+        if project_mode:
+            from core.project_manager import ProjectManager
+            self.project_manager = ProjectManager(engine)
         
         # Session state
         self.conversation_turns = 0
@@ -82,6 +89,15 @@ class CLIManager:
             
             # Start system monitoring
             self._start_system_monitoring()
+            
+            # Initialize dual terminal if requested
+            if self.interface_type == "dual":
+                success = self._initialize_dual_terminal()
+                if not success:
+                    # Fallback to standard interface
+                    self.interface_type = "enhanced"
+                    self.terminal_interface = TerminalInterface(self.interface_type)
+                    self.terminal_interface.initialize()
             
             # Show welcome
             self._show_welcome_screen()
@@ -165,13 +181,19 @@ class CLIManager:
         process = psutil.Process()
         memory_info = process.memory_info()
         
+        # Get CPU percentage (with interval for accurate reading)
+        cpu_percent = process.cpu_percent(interval=0.1)
+        if cpu_percent == 0.0:
+            # Fallback to system CPU if process CPU is 0
+            cpu_percent = psutil.cpu_percent(interval=0.1)
+        
         # Ollama connection status
         ollama_status = self._check_ollama_status()
         
         metrics = {
             # System resources
             'memory_usage_mb': round(memory_info.rss / 1024 / 1024, 1),
-            'cpu_usage_percent': round(process.cpu_percent(), 1),
+            'cpu_usage_percent': round(cpu_percent, 1),
             
             # Service status
             'ollama_connected': ollama_status,
@@ -193,6 +215,33 @@ class CLIManager:
             metrics.update(self.performance_cache)
         
         return metrics
+    
+    def _initialize_dual_terminal(self) -> bool:
+        """Initialize dual terminal system."""
+        try:
+            from core.interface.dual_terminal import DualTerminalInterface
+            from models.session_stats import SessionStats
+            from utils.system_monitor import SystemMonitor
+            
+            # Create session stats and system monitor
+            session_stats = SessionStats()
+            system_monitor = SystemMonitor()
+            
+            # Initialize dual terminal
+            dual_interface = DualTerminalInterface(session_stats, system_monitor)
+            success = dual_interface.initialize()
+            
+            if success:
+                self.terminal_interface = dual_interface
+                logger.info("Dual terminal system initialized")
+                return True
+            else:
+                logger.warning("Failed to initialize dual terminal system")
+                return False
+                
+        except Exception as e:
+            logger.error(f"Dual terminal initialization failed: {e}")
+            return False
     
     def _check_ollama_status(self) -> bool:
         """Quick Ollama connection check without spam."""
@@ -253,17 +302,34 @@ class CLIManager:
     
     def _show_welcome_screen(self):
         """Show welcome screen with system info."""
+        features = [
+            'Real-time code streaming',
+            'Performance monitoring',
+            'Modular architecture',
+            'Intelligent caching',
+            'Extended context (131k tokens)',
+            'GPU acceleration'
+        ]
+        
+        # Add project management features if enabled
+        if self.project_mode:
+            features.extend([
+                'Multi-step project management',
+                'Automatic project breakdown',
+                'Dependency tracking'
+            ])
+        
+        # Add dual terminal info if enabled
+        if self.interface_type == "dual":
+            features.append('Dual terminal monitoring')
+        
         welcome_data = {
             'title': 'Advanced AI Code Generation System',
             'version': '1.0.0',
-            'interface_type': self.interface_type,
+            'interface_type': self.interface_type.title(),
             'model': self.engine.settings.model_name,
-            'features': [
-                'Real-time code streaming',
-                'Performance monitoring',
-                'Modular architecture',
-                'Intelligent caching'
-            ]
+            'features': features,
+            'project_mode': self.project_mode
         }
         
         self.terminal_interface.show_welcome(welcome_data)
