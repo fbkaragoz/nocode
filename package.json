@@ -1,0 +1,47 @@
+{
+  "name": "multi-agent-orchestrator",
+  "version": "1.0.0",
+  "description": "Multi-Agent AI Orchestrator - Claude + Gemini + Codex Pipeline",
+  "module": "src/index.ts",
+  "main": "dist/index.js",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "orchestrate": "./dist/index.js"
+  },
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "dev": "bun run --watch src/index.ts",
+    "build": "bun build src/index.ts --outdir dist --target bun",
+    "typecheck": "bun x tsc --noEmit",
+    "clean": "rm -rf dist",
+    "test": "bun test",
+    "status": "bun run src/index.ts status",
+    "run:goal": "bun run src/index.ts run",
+    "interactive": "bun run src/index.ts interactive"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "chalk": "^5.6.2",
+    "commander": "^14.0.2",
+    "ora": "^9.0.0",
+    "yaml": "^2.8.2"
+  },
+  "engines": {
+    "bun": ">=1.0.0"
+  },
+  "keywords": [
+    "ai",
+    "orchestrator",
+    "multi-agent",
+    "claude",
+    "gemini",
+    "codex",
+    "automation"
+  ]
+}

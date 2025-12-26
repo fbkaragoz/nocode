@@ -213,3 +213,4 @@ config.local.yaml
 *.tar.gz
 *.zip
 *.rar
+node_modules
