@@ -57,14 +57,26 @@ export class Orchestrator {
 
     for (const [type, agentConfig] of Object.entries(AGENT_CONFIGS)) {
       const available = await this.isAgentAvailable(agentConfig.command);
+      // Get actual model info from CLI if available
+      const model = agentConfig.model || await this.getAgentDefaultModel(agentConfig.command);
       agents.push({
         name: agentConfig.name,
         available,
-        model: agentConfig.model,
+        model: model || 'default',
       });
     }
 
     return agents;
+  }
+
+  /**
+   * Get the default model being used by an agent CLI
+   */
+  private async getAgentDefaultModel(command: string): Promise<string | undefined> {
+    // Each CLI has different ways to show the current model
+    // For now, return undefined to use 'default' display
+    // The actual model will be shown in the streaming output
+    return undefined;
   }
 
   /**
@@ -317,7 +329,7 @@ export class Orchestrator {
   }
 
   /**
-   * Execute a single task
+   * Execute a single task with real-time streaming output
    */
   private async executeTask(task: Task, plan: ExecutionPlan): Promise<TaskResult> {
     const agent = task.agent || selectAgent(task.description);
@@ -328,20 +340,64 @@ export class Orchestrator {
     const context = this.contextManager.generateContextString();
     const prompt = `${context}\n\n## Task\n${task.description}\n\n## Goal\n${plan.goal}`;
 
+    // Build args - add model if specified
+    const args = [...agentConfig.args];
+    if (agentConfig.model) {
+      args.push('-m', agentConfig.model);
+    }
+    args.push(prompt);
+
     try {
-      // Execute via CLI
-      const proc = Bun.spawn([agentConfig.command, ...agentConfig.args, prompt], {
+      // Execute via CLI with streaming
+      const proc = Bun.spawn([agentConfig.command, ...args], {
         cwd: this.config.workingDirectory,
         stdout: 'pipe',
         stderr: 'pipe',
-        timeout: agentConfig.timeout,
       });
 
-      const output = await new Response(proc.stdout).text();
-      const stderr = await new Response(proc.stderr).text();
-      const exitCode = await proc.exited;
+      let output = '';
+      let stderr = '';
 
+      // Show streaming header
+      console.log(`\n${'─'.repeat(60)}`);
+      console.log(`📡 ${agentConfig.name} Output:`);
+      console.log(`${'─'.repeat(60)}\n`);
+
+      // Stream stdout in real-time
+      const decoder = new TextDecoder();
+      const reader = proc.stdout.getReader();
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          output += chunk;
+          process.stdout.write(chunk); // Real-time output
+        }
+      } catch {
+        // Stream ended
+      }
+
+      // Also capture stderr
+      const stderrReader = proc.stderr.getReader();
+      try {
+        while (true) {
+          const { done, value } = await stderrReader.read();
+          if (done) break;
+          stderr += decoder.decode(value, { stream: true });
+        }
+      } catch {
+        // Stream ended
+      }
+
+      const exitCode = await proc.exited;
       const duration = Date.now() - startTime;
+
+      console.log(`\n${'─'.repeat(60)}`);
+      console.log(`✅ ${agentConfig.name} completed in ${(duration / 1000).toFixed(1)}s`);
+      console.log(`${'─'.repeat(60)}\n`);
 
       // Log to history
       this.contextManager.addHistoryEntry({
@@ -366,6 +422,8 @@ export class Orchestrator {
     } catch (err) {
       const duration = Date.now() - startTime;
       const errorMsg = err instanceof Error ? err.message : String(err);
+
+      console.log(`\n❌ ${agentConfig.name} failed: ${errorMsg}\n`);
 
       return {
         taskId: task.id,

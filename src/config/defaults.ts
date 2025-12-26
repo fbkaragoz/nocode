@@ -25,16 +25,16 @@ export const AGENT_CONFIGS: Record<AgentType, AgentConfig> = {
     args: ['--print', '--dangerously-skip-permissions'],
     timeout: 600000,
     maxRetries: 2,
-    model: 'claude-sonnet-4-20250514'
+    model: undefined // Uses CLI default, can be overridden via --model flag
   },
   [AgentType.GEMINI]: {
     name: 'Gemini',
     type: AgentType.GEMINI,
     command: 'gemini',
-    args: ['--non-interactive', '--sandbox=false'],
+    args: ['-y', '-s'],
     timeout: 600000,
     maxRetries: 2,
-    model: 'gemini-2.5-flash'
+    model: undefined // Uses CLI default, can be overridden via --model flag
   },
   [AgentType.CODEX]: {
     name: 'Codex',
@@ -43,7 +43,7 @@ export const AGENT_CONFIGS: Record<AgentType, AgentConfig> = {
     args: ['--full-auto'],
     timeout: 300000,
     maxRetries: 2,
-    model: 'gpt-4'
+    model: undefined // Uses CLI default, can be overridden via --model flag
   }
 };
 
