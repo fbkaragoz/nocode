@@ -43,6 +43,9 @@ async function main() {
     .option('-v, --verbose', 'Enable verbose output')
     .option('--no-confirm', 'Skip plan confirmation')
     .option('--max-concurrency <n>', 'Maximum concurrent tasks', '3')
+    .option('--claude-model <model>', 'Model to use for Claude agent')
+    .option('--gemini-model <model>', 'Model to use for Gemini agent')
+    .option('--codex-model <model>', 'Model to use for Codex agent')
     .action(async (goal, options) => {
       ui.showBanner();
 
@@ -51,6 +54,20 @@ async function main() {
         verbose: options.verbose || false,
         maxConcurrency: parseInt(options.maxConcurrency)
       };
+
+      // Apply model overrides from CLI
+      if (options.claudeModel) {
+        const { AGENT_CONFIGS } = await import('./config/defaults');
+        AGENT_CONFIGS[AgentType.CLAUDE].model = options.claudeModel;
+      }
+      if (options.geminiModel) {
+        const { AGENT_CONFIGS } = await import('./config/defaults');
+        AGENT_CONFIGS[AgentType.GEMINI].model = options.geminiModel;
+      }
+      if (options.codexModel) {
+        const { AGENT_CONFIGS } = await import('./config/defaults');
+        AGENT_CONFIGS[AgentType.CODEX].model = options.codexModel;
+      }
 
       const orchestrator = new Orchestrator(config, contextManager, ui);
 
