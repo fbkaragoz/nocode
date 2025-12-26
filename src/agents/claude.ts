@@ -75,6 +75,13 @@ export class ClaudeAgent extends BaseAgent {
 
   /**
    * Build Claude CLI arguments
+   *
+   * Valid Claude CLI options:
+   * --print, -p            Print output without interactive mode
+   * --dangerously-skip-permissions  Skip permission prompts
+   * --model                Model to use
+   * --output-format        Output format (text, json, stream-json)
+   * [prompt]               Positional prompt argument
    */
   protected buildArgs(
     prompt: string,
@@ -98,47 +105,17 @@ export class ClaudeAgent extends BaseAgent {
       args.push('--model', model);
     }
 
-    // System prompt
-    const systemPrompt = config.systemPrompt ?? this.claudeDefaults.systemPrompt;
-    if (systemPrompt) {
-      args.push('--system-prompt', systemPrompt);
-    }
-
-    // Max tokens
-    const maxTokens = config.maxTokens ?? this.claudeDefaults.maxTokens;
-    if (maxTokens > 0) {
-      args.push('--max-tokens', String(maxTokens));
-    }
-
-    // Temperature
-    const temperature = config.temperature ?? this.claudeDefaults.temperature;
-    if (temperature >= 0 && temperature <= 1) {
-      args.push('--temperature', String(temperature));
-    }
-
     // Output format
     const outputFormat = config.outputFormat ?? this.claudeDefaults.outputFormat;
     if (outputFormat !== 'text') {
       args.push('--output-format', outputFormat);
     }
 
-    // Allowed tools
-    const allowedTools = config.allowedTools ?? this.claudeDefaults.allowedTools;
-    for (const tool of allowedTools) {
-      args.push('--allowed-tool', tool);
-    }
-
-    // Context files
-    const contextFiles = config.contextFiles ?? this.claudeDefaults.contextFiles;
-    for (const file of contextFiles) {
-      args.push('--file', file);
-    }
-
-    // Extra arguments
+    // Extra arguments from config
     args.push(...config.extraArgs);
 
-    // The prompt itself
-    args.push('--prompt', prompt);
+    // The prompt itself as positional argument (must be last)
+    args.push(prompt);
 
     return args;
   }
