@@ -24,28 +24,18 @@ import {
  * Extended configuration for Gemini CLI
  */
 export interface GeminiAgentConfig extends AgentConfig {
-  /** Run in non-interactive mode */
-  nonInteractive?: boolean;
-  /** Disable sandbox restrictions */
+  /** Automatically accept all actions (yolo mode) */
+  yolo?: boolean;
+  /** Run in sandbox mode */
   sandbox?: boolean;
-  /** Model to use (e.g., 'gemini-pro', 'gemini-ultra') */
+  /** Model to use (e.g., 'gemini-2.5-pro') */
   model?: string;
-  /** Temperature for sampling (0-2) */
-  temperature?: number;
-  /** Maximum output tokens */
-  maxOutputTokens?: number;
-  /** Top-P sampling parameter */
-  topP?: number;
-  /** Top-K sampling parameter */
-  topK?: number;
-  /** Safety settings level */
-  safetySettings?: 'block_none' | 'block_few' | 'block_some' | 'block_most';
-  /** Files to include as context */
-  contextFiles?: string[];
-  /** Project ID for Google Cloud */
-  projectId?: string;
-  /** Region for API calls */
-  region?: string;
+  /** Output format: text, json, or stream-json */
+  outputFormat?: 'text' | 'json' | 'stream-json';
+  /** Approval mode: default, auto_edit, or yolo */
+  approvalMode?: 'default' | 'auto_edit' | 'yolo';
+  /** Enable debug mode */
+  debug?: boolean;
 }
 
 // ============================================================================
@@ -66,21 +56,25 @@ export class GeminiAgent extends BaseAgent {
   private readonly geminiDefaults: Required<
     Omit<GeminiAgentConfig, keyof AgentConfig>
   > = {
-    nonInteractive: true,
-    sandbox: false,
+    yolo: true,
+    sandbox: true,
     model: '',
-    temperature: -1,
-    maxOutputTokens: 0,
-    topP: -1,
-    topK: -1,
-    safetySettings: 'block_few',
-    contextFiles: [],
-    projectId: '',
-    region: '',
+    outputFormat: 'text',
+    approvalMode: 'yolo',
+    debug: false,
   };
 
   /**
    * Build Gemini CLI arguments
+   *
+   * Valid Gemini CLI options:
+   * -y, --yolo           Automatically accept all actions
+   * -s, --sandbox        Run in sandbox mode
+   * -m, --model          Model selection
+   * -o, --output-format  Output format (text, json, stream-json)
+   * --approval-mode      Approval mode (default, auto_edit, yolo)
+   * -d, --debug          Debug mode
+   * [query..]            Positional prompt argument
    */
   protected buildArgs(
     prompt: string,
@@ -88,77 +82,38 @@ export class GeminiAgent extends BaseAgent {
   ): string[] {
     const args: string[] = [];
 
-    // Non-interactive mode
-    if (config.nonInteractive ?? this.geminiDefaults.nonInteractive) {
-      args.push('--non-interactive');
+    // Yolo mode (auto-approve all actions)
+    if (config.yolo ?? this.geminiDefaults.yolo) {
+      args.push('-y');
     }
 
-    // Sandbox setting
-    const sandbox = config.sandbox ?? this.geminiDefaults.sandbox;
-    args.push(`--sandbox=${sandbox}`);
+    // Sandbox mode
+    if (config.sandbox ?? this.geminiDefaults.sandbox) {
+      args.push('-s');
+    }
 
     // Model selection
     const model = config.model ?? this.geminiDefaults.model;
     if (model) {
-      args.push('--model', model);
+      args.push('-m', model);
     }
 
-    // Temperature
-    const temperature = config.temperature ?? this.geminiDefaults.temperature;
-    if (temperature >= 0 && temperature <= 2) {
-      args.push('--temperature', String(temperature));
+    // Output format
+    const outputFormat = config.outputFormat ?? this.geminiDefaults.outputFormat;
+    if (outputFormat && outputFormat !== 'text') {
+      args.push('-o', outputFormat);
     }
 
-    // Max output tokens
-    const maxOutputTokens =
-      config.maxOutputTokens ?? this.geminiDefaults.maxOutputTokens;
-    if (maxOutputTokens > 0) {
-      args.push('--max-output-tokens', String(maxOutputTokens));
+    // Debug mode
+    if (config.debug ?? this.geminiDefaults.debug) {
+      args.push('-d');
     }
 
-    // Top-P
-    const topP = config.topP ?? this.geminiDefaults.topP;
-    if (topP >= 0 && topP <= 1) {
-      args.push('--top-p', String(topP));
-    }
-
-    // Top-K
-    const topK = config.topK ?? this.geminiDefaults.topK;
-    if (topK > 0) {
-      args.push('--top-k', String(topK));
-    }
-
-    // Safety settings
-    const safetySettings =
-      config.safetySettings ?? this.geminiDefaults.safetySettings;
-    if (safetySettings !== 'block_few') {
-      args.push('--safety-settings', safetySettings);
-    }
-
-    // Context files
-    const contextFiles =
-      config.contextFiles ?? this.geminiDefaults.contextFiles;
-    for (const file of contextFiles) {
-      args.push('--context-file', file);
-    }
-
-    // Project ID
-    const projectId = config.projectId ?? this.geminiDefaults.projectId;
-    if (projectId) {
-      args.push('--project', projectId);
-    }
-
-    // Region
-    const region = config.region ?? this.geminiDefaults.region;
-    if (region) {
-      args.push('--region', region);
-    }
-
-    // Extra arguments
+    // Extra arguments from config
     args.push(...config.extraArgs);
 
-    // The prompt itself
-    args.push('--prompt', prompt);
+    // The prompt itself as positional argument (must be last)
+    args.push(prompt);
 
     return args;
   }
