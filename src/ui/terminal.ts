@@ -5,7 +5,8 @@
 import chalk from 'chalk';
 import ora from 'ora';
 import type { Ora } from 'ora';
-import { TaskStatus, AgentType } from '../core/types';
+import { input, confirm } from '@inquirer/prompts';
+import { TaskStatus, AgentType } from '../core/types'
 import type {
   ExecutionProgress,
   Task,
@@ -314,6 +315,134 @@ export class TerminalUI {
   prompt(message: string): void {
     console.log();
     console.log(chalk.yellow('?'), chalk.bold(message));
+  }
+
+  // Interactive model selection - queries from each CLI
+  async selectModels(): Promise<Record<AgentType, string>> {
+    const models: Record<AgentType, string> = {
+      [AgentType.CLAUDE]: '',
+      [AgentType.GEMINI]: '',
+      [AgentType.CODEX]: '',
+    };
+
+    console.log();
+    console.log(chalk.bold.cyan('🎛️  Model Configuration'));
+    console.log(chalk.gray('   Enter model names for each agent (leave empty for CLI default)'));
+    console.log(chalk.gray('   Examples: claude → sonnet, opus, haiku'));
+    console.log(chalk.gray('            gemini → gemini-2.5-pro, gemini-2.5-flash'));
+    console.log(chalk.gray('            codex  → o3, o3-mini, gpt-4.1'));
+    console.log();
+
+    // Ask if user wants to configure models
+    const configure = await confirm({
+      message: 'Configure models? (No = use CLI defaults)',
+      default: false,
+    });
+
+    if (!configure) {
+      console.log(chalk.gray('   Using default models for all agents'));
+      return models;
+    }
+
+    // Get model for each agent
+    for (const agentType of [AgentType.GEMINI, AgentType.CLAUDE, AgentType.CODEX]) {
+      const agentName = agentType === AgentType.CLAUDE ? 'Claude'
+                      : agentType === AgentType.GEMINI ? 'Gemini'
+                      : 'Codex';
+
+      const modelInput = await input({
+        message: `${agentName} model (empty = default):`,
+        default: '',
+      });
+
+      models[agentType] = modelInput.trim();
+
+      if (modelInput.trim()) {
+        console.log(chalk.green(`   ✓ ${agentName}: ${modelInput.trim()}`));
+      } else {
+        console.log(chalk.gray(`   · ${agentName}: using CLI default`));
+      }
+    }
+
+    console.log();
+    return models;
+  }
+
+  // Streaming output header
+  showStreamingStart(agentType: AgentType, taskNumber: number, totalTasks: number, description: string): void {
+    this.stopSpinner(); // Stop any running spinner
+
+    const agentName = agentType === AgentType.CLAUDE ? 'Claude'
+                    : agentType === AgentType.GEMINI ? 'Gemini'
+                    : 'Codex';
+    const agentColor = agentType === AgentType.CLAUDE ? chalk.magenta
+                     : agentType === AgentType.GEMINI ? chalk.blue
+                     : chalk.green;
+
+    console.log();
+    console.log(agentColor('┌' + '─'.repeat(70) + '┐'));
+    console.log(agentColor('│') + chalk.bold(` 🤖 ${agentName} `) + chalk.gray(`[Task ${taskNumber}/${totalTasks}]`).padEnd(59) + agentColor('│'));
+    console.log(agentColor('│') + chalk.gray(` ${this.truncate(description, 68)} `).padEnd(70) + agentColor('│'));
+    console.log(agentColor('├' + '─'.repeat(70) + '┤'));
+    console.log(agentColor('│') + chalk.gray(' Output:').padEnd(70) + agentColor('│'));
+    console.log(agentColor('└' + '─'.repeat(70) + '┘'));
+    console.log();
+  }
+
+  // Streaming output with live indicator
+  showStreamingLine(line: string, agentType: AgentType): void {
+    const agentColor = agentType === AgentType.CLAUDE ? chalk.magenta
+                     : agentType === AgentType.GEMINI ? chalk.blue
+                     : chalk.green;
+
+    // Prefix each line with a subtle indicator
+    console.log(agentColor('│') + ' ' + line);
+  }
+
+  // Streaming output footer
+  showStreamingEnd(agentType: AgentType, duration: number, success: boolean): void {
+    const agentName = agentType === AgentType.CLAUDE ? 'Claude'
+                    : agentType === AgentType.GEMINI ? 'Gemini'
+                    : 'Codex';
+    const agentColor = agentType === AgentType.CLAUDE ? chalk.magenta
+                     : agentType === AgentType.GEMINI ? chalk.blue
+                     : chalk.green;
+
+    console.log();
+    if (success) {
+      console.log(agentColor('┌' + '─'.repeat(70) + '┐'));
+      console.log(agentColor('│') + chalk.green(` ✅ ${agentName} completed in ${(duration / 1000).toFixed(1)}s`).padEnd(70) + agentColor('│'));
+      console.log(agentColor('└' + '─'.repeat(70) + '┘'));
+    } else {
+      console.log(agentColor('┌' + '─'.repeat(70) + '┐'));
+      console.log(agentColor('│') + chalk.red(` ❌ ${agentName} failed after ${(duration / 1000).toFixed(1)}s`).padEnd(70) + agentColor('│'));
+      console.log(agentColor('└' + '─'.repeat(70) + '┘'));
+    }
+    console.log();
+  }
+
+  // Show task progress summary
+  showTaskProgress(currentTask: number, totalTasks: number, completedTasks: string[], failedTasks: string[]): void {
+    console.log();
+    console.log(chalk.bold.white('📊 Progress'));
+
+    const progressPercent = Math.round((currentTask / totalTasks) * 100);
+    const progressBar = this.createProgressBar(progressPercent, 30);
+
+    console.log(`   ${progressBar} ${progressPercent}% (${currentTask}/${totalTasks})`);
+
+    if (completedTasks.length > 0) {
+      console.log(chalk.green(`   ✓ Completed: ${completedTasks.join(', ')}`));
+    }
+    if (failedTasks.length > 0) {
+      console.log(chalk.red(`   ✗ Failed: ${failedTasks.join(', ')}`));
+    }
+    console.log();
+  }
+
+  // Show what's happening right now
+  showCurrentAction(action: string): void {
+    console.log(chalk.cyan('   → ') + chalk.white(action));
   }
 }
 
