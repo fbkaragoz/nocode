@@ -43,9 +43,7 @@ async function main() {
     .option('-v, --verbose', 'Enable verbose output')
     .option('--no-confirm', 'Skip plan confirmation')
     .option('--max-concurrency <n>', 'Maximum concurrent tasks', '3')
-    .option('--claude-model <model>', 'Model to use for Claude agent')
-    .option('--gemini-model <model>', 'Model to use for Gemini agent')
-    .option('--codex-model <model>', 'Model to use for Codex agent')
+    .option('--skip-model-config', 'Skip model configuration prompt')
     .action(async (goal, options) => {
       ui.showBanner();
 
@@ -54,20 +52,6 @@ async function main() {
         verbose: options.verbose || false,
         maxConcurrency: parseInt(options.maxConcurrency)
       };
-
-      // Apply model overrides from CLI
-      if (options.claudeModel) {
-        const { AGENT_CONFIGS } = await import('./config/defaults');
-        AGENT_CONFIGS[AgentType.CLAUDE].model = options.claudeModel;
-      }
-      if (options.geminiModel) {
-        const { AGENT_CONFIGS } = await import('./config/defaults');
-        AGENT_CONFIGS[AgentType.GEMINI].model = options.geminiModel;
-      }
-      if (options.codexModel) {
-        const { AGENT_CONFIGS } = await import('./config/defaults');
-        AGENT_CONFIGS[AgentType.CODEX].model = options.codexModel;
-      }
 
       const orchestrator = new Orchestrator(config, contextManager, ui);
 
@@ -80,6 +64,23 @@ async function main() {
       if (availableCount === 0) {
         ui.error('No agents available! Please install claude, gemini, or codex CLI.');
         process.exit(1);
+      }
+
+      // Interactive model selection (unless skipped)
+      if (!options.skipModelConfig) {
+        const { AGENT_CONFIGS } = await import('./config/defaults');
+        const selectedModels = await ui.selectModels();
+
+        // Apply selected models
+        if (selectedModels[AgentType.CLAUDE]) {
+          AGENT_CONFIGS[AgentType.CLAUDE].model = selectedModels[AgentType.CLAUDE];
+        }
+        if (selectedModels[AgentType.GEMINI]) {
+          AGENT_CONFIGS[AgentType.GEMINI].model = selectedModels[AgentType.GEMINI];
+        }
+        if (selectedModels[AgentType.CODEX]) {
+          AGENT_CONFIGS[AgentType.CODEX].model = selectedModels[AgentType.CODEX];
+        }
       }
 
       // Parse mode
