@@ -244,11 +244,20 @@ export class Orchestrator {
     const filesModified: string[] = [];
     const filesCreated: string[] = [];
     const errors: string[] = [];
+    const completedTaskIds: string[] = [];
+    const failedTaskIds: string[] = [];
 
     // Sort tasks topologically
     const sortedTasks = this.topologicalSort(plan.tasks);
+    const totalTasks = sortedTasks.length;
 
-    for (const task of sortedTasks) {
+    for (let i = 0; i < sortedTasks.length; i++) {
+      const task = sortedTasks[i]!;
+      const taskNumber = i + 1;
+
+      // Show current progress
+      this.ui.showTaskProgress(taskNumber, totalTasks, completedTaskIds, failedTaskIds);
+
       // Check if dependencies completed successfully
       const depsOk = task.dependencies.every(depId => {
         const dep = taskResults.find(r => r.taskId === depId);
@@ -257,6 +266,7 @@ export class Orchestrator {
 
       if (!depsOk) {
         task.status = TaskStatus.CANCELLED;
+        failedTaskIds.push(task.id);
         taskResults.push({
           taskId: task.id,
           success: false,
@@ -269,31 +279,31 @@ export class Orchestrator {
         continue;
       }
 
-      // Execute task
-      this.ui.startSpinner(`Executing: ${task.description}`);
+      // Execute task (no spinner - streaming UI handles this)
       task.status = TaskStatus.IN_PROGRESS;
       task.startedAt = new Date();
 
       try {
-        const result = await this.executeTask(task, plan);
+        const result = await this.executeTask(task, plan, taskNumber, totalTasks);
         taskResults.push(result);
 
         if (result.success) {
           task.status = TaskStatus.COMPLETED;
           task.output = result.output;
           filesModified.push(...result.filesModified);
-          this.ui.succeedSpinner(`Completed: ${task.description}`);
+          completedTaskIds.push(task.id);
         } else {
           task.status = TaskStatus.FAILED;
           task.error = result.error;
           errors.push(result.error || 'Unknown error');
-          this.ui.failSpinner(`Failed: ${task.description}`);
+          failedTaskIds.push(task.id);
         }
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : String(err);
         task.status = TaskStatus.FAILED;
         task.error = errorMsg;
         errors.push(errorMsg);
+        failedTaskIds.push(task.id);
         taskResults.push({
           taskId: task.id,
           success: false,
@@ -303,7 +313,6 @@ export class Orchestrator {
           agent: task.agent || AgentType.CLAUDE,
           filesModified: [],
         });
-        this.ui.failSpinner(`Failed: ${task.description} - ${errorMsg}`);
       }
 
       task.completedAt = new Date();
@@ -331,7 +340,12 @@ export class Orchestrator {
   /**
    * Execute a single task with real-time streaming output
    */
-  private async executeTask(task: Task, plan: ExecutionPlan): Promise<TaskResult> {
+  private async executeTask(
+    task: Task,
+    plan: ExecutionPlan,
+    taskNumber: number,
+    totalTasks: number
+  ): Promise<TaskResult> {
     const agent = task.agent || selectAgent(task.description);
     const agentConfig = AGENT_CONFIGS[agent];
     const startTime = Date.now();
@@ -347,6 +361,9 @@ export class Orchestrator {
     }
     args.push(prompt);
 
+    // Show streaming header with agent info
+    this.ui.showStreamingStart(agent, taskNumber, totalTasks, task.description);
+
     try {
       // Execute via CLI with streaming
       const proc = Bun.spawn([agentConfig.command, ...args], {
@@ -358,23 +375,34 @@ export class Orchestrator {
       let output = '';
       let stderr = '';
 
-      // Show streaming header
-      console.log(`\n${'─'.repeat(60)}`);
-      console.log(`📡 ${agentConfig.name} Output:`);
-      console.log(`${'─'.repeat(60)}\n`);
-
       // Stream stdout in real-time
       const decoder = new TextDecoder();
       const reader = proc.stdout.getReader();
 
       try {
+        let buffer = '';
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
 
           const chunk = decoder.decode(value, { stream: true });
           output += chunk;
-          process.stdout.write(chunk); // Real-time output
+          buffer += chunk;
+
+          // Process complete lines for cleaner output
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || ''; // Keep incomplete line in buffer
+
+          for (const line of lines) {
+            if (line.trim()) {
+              process.stdout.write(line + '\n');
+            }
+          }
+        }
+
+        // Output any remaining buffer
+        if (buffer.trim()) {
+          process.stdout.write(buffer + '\n');
         }
       } catch {
         // Stream ended
@@ -395,9 +423,8 @@ export class Orchestrator {
       const exitCode = await proc.exited;
       const duration = Date.now() - startTime;
 
-      console.log(`\n${'─'.repeat(60)}`);
-      console.log(`✅ ${agentConfig.name} completed in ${(duration / 1000).toFixed(1)}s`);
-      console.log(`${'─'.repeat(60)}\n`);
+      // Show completion status
+      this.ui.showStreamingEnd(agent, duration, exitCode === 0);
 
       // Log to history
       this.contextManager.addHistoryEntry({
@@ -423,7 +450,7 @@ export class Orchestrator {
       const duration = Date.now() - startTime;
       const errorMsg = err instanceof Error ? err.message : String(err);
 
-      console.log(`\n❌ ${agentConfig.name} failed: ${errorMsg}\n`);
+      this.ui.showStreamingEnd(agent, duration, false);
 
       return {
         taskId: task.id,
