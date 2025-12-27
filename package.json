@@ -1,27 +1,30 @@
 {
-  "name": "multi-agent-orchestrator",
+  "name": "nocode",
   "version": "1.0.0",
   "description": "Multi-Agent AI Orchestrator - Claude + Gemini + Codex Pipeline",
-  "module": "src/index.ts",
-  "main": "dist/index.js",
+  "module": "src/cli.tsx",
+  "main": "dist/cli.js",
   "type": "module",
-  "private": true,
+  "private": false,
   "bin": {
-    "orchestrate": "./dist/index.js"
+    "nocode": "./src/cli.tsx",
+    "orchestrate": "./src/index.ts"
   },
   "scripts": {
-    "start": "bun run src/index.ts",
-    "dev": "bun run --watch src/index.ts",
-    "build": "bun build src/index.ts --outdir dist --target bun",
+    "start": "bun run src/cli.tsx",
+    "classic": "bun run src/index.ts",
+    "dev": "bun run --watch src/cli.tsx",
+    "build": "bun build src/cli.tsx --outdir dist --target bun",
     "typecheck": "bun x tsc --noEmit",
     "clean": "rm -rf dist",
     "test": "bun test",
     "status": "bun run src/index.ts status",
-    "run:goal": "bun run src/index.ts run",
-    "interactive": "bun run src/index.ts interactive"
+    "link": "bun link",
+    "global": "bun link && echo 'Now you can run: nocode'"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/react": "^19.2.7"
   },
   "peerDependencies": {
     "typescript": "^5"
@@ -30,7 +33,11 @@
     "@inquirer/prompts": "^8.1.0",
     "chalk": "^5.6.2",
     "commander": "^14.0.2",
+    "ink": "^6.6.0",
+    "ink-spinner": "^5.0.0",
+    "ink-text-input": "^6.0.0",
     "ora": "^9.0.0",
+    "react": "^19.2.3",
     "yaml": "^2.8.2"
   },
   "engines": {
@@ -43,6 +50,7 @@
     "claude",
     "gemini",
     "codex",
-    "automation"
+    "automation",
+    "nocode"
   ]
 }
