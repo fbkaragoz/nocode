@@ -31,14 +31,12 @@ venv/
 ENV/
 env.bak/
 venv.bak/
-
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-
 # OS
 .DS_Store
 .DS_Store?
@@ -47,22 +45,18 @@ venv.bak/
 .Trashes
 ehthumbs.db
 Thumbs.db
-
 # Logs
 *.log
 logs/
 auto_coder.log
-
 # Generated code
 generated_code/
 output/
 temp/
-
 # Configuration files (may contain sensitive data)
 config.yaml
 local_config.yaml
 user_config.yaml
-
 # CRITICAL: IP PROTECTION - NEVER COMMIT THESE
 .secrets/
 *.secret
@@ -73,142 +67,107 @@ behavior_profiles.yaml
 ai_instructions.yaml
 proprietary_prompts/
 ip_protected/
-
 # Model files and caches
 models/
 *.gguf
 *.bin
 .cache/
 model_cache/
-
 # Test artifacts
 .pytest_cache/
 .coverage
 htmlcov/
-
 # Development
 .debug/
 .profile/
 performance_logs/
-
 # Jupyter
 .ipynb_checkpoints/
-
 # Database
 *.db
 *.sqlite3
-
 # Environment variables
 .env.*
 !.env.example
-
 # PyInstaller
 *.manifest
 *.spec
-
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
-
 # Unit test / coverage reports
 *.cover
 *.py,cover
 .hypothesis/
 cover/
-
 # Translations
 *.mo
 *.pot
-
 # Django stuff:
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
-
 # Flask stuff:
 instance/
 .webassets-cache
-
 # Scrapy stuff:
 .scrapy
-
 # Sphinx documentation
 docs/_build/
-
 # PyBuilder
 .pybuilder/
 target/
-
 # IPython
 profile_default/
 ipython_config.py
-
 # pyenv
 .python-version
-
 # pipenv
 Pipfile.lock
-
 # poetry
 poetry.lock
-
 # pdm
 .pdm.toml
-
 # PEP 582
 __pypackages__/
-
 # Celery stuff
 celerybeat-schedule
 celerybeat.pid
-
 # SageMath parsed files
 *.sage.py
-
 # Spyder project settings
 .spyderproject
 .spyproject
-
 # Rope project settings
 .ropeproject
-
 # mkdocs documentation
 /site
-
 # mypy
 .mypy_cache/
 .dmypy.json
 dmypy.json
-
 # Pyre type checker
 .pyre/
-
 # pytype static type analyzer
 .pytype/
-
 # Cython debug symbols
 cython_debug/
-
 # Project specific directories
 tmp/
 cache/
-
 # Temporary files
 *.tmp
 *.temp
 *.bak
 *.backup
-
 # Configuration overrides
 config.local.yaml
 .env.local
 .env.production
-
 # AI Model files
 *.safetensors
 *.ggml
 *.model
-
 # Large files
 *.tar.gz
 *.zip

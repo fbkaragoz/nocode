@@ -50,7 +50,13 @@ export interface CodeBlock {
  * Parsed file operation from agent response
  */
 export interface FileOperation {
-  /** Type of operation */
+  /** Type of operation 
+   * 
+   * - create: Create a new file
+   * - modify: Modify an existing file
+   * - delete: Delete a file
+   * - read: Read a file
+   */
   operation: 'create' | 'modify' | 'delete' | 'read';
   /** File path (relative or absolute) */
   path: string;
@@ -312,25 +318,25 @@ export abstract class BaseAgent {
       // Stream stdout
       const stdoutPromise = this.activeProcess.stdout
         ? this.streamOutput(
-            this.activeProcess.stdout as ReadableStream<Uint8Array>,
-            config.maxOutputSize,
-            (chunk) => {
-              stdout += chunk;
-              onStream?.(chunk, 'stdout');
-            }
-          )
+          this.activeProcess.stdout as ReadableStream<Uint8Array>,
+          config.maxOutputSize,
+          (chunk) => {
+            stdout += chunk;
+            onStream?.(chunk, 'stdout');
+          }
+        )
         : Promise.resolve();
 
       // Stream stderr
       const stderrPromise = this.activeProcess.stderr
         ? this.streamOutput(
-            this.activeProcess.stderr as ReadableStream<Uint8Array>,
-            config.maxOutputSize,
-            (chunk) => {
-              stderr += chunk;
-              onStream?.(chunk, 'stderr');
-            }
-          )
+          this.activeProcess.stderr as ReadableStream<Uint8Array>,
+          config.maxOutputSize,
+          (chunk) => {
+            stderr += chunk;
+            onStream?.(chunk, 'stderr');
+          }
+        )
         : Promise.resolve();
 
       // Wait for completion or timeout
