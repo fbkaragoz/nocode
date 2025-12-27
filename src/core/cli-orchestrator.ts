@@ -29,6 +29,71 @@ export interface AgentStatus {
   model?: string;
 }
 
+// Agent role definitions
+export interface AgentRole {
+  name: string;
+  description: string;
+  responsibilities: string[];
+  systemPrompt: string;
+}
+
+export const AGENT_ROLES: Record<AgentType, AgentRole> = {
+  [AgentType.CLAUDE]: {
+    name: 'Architect',
+    description: 'System architecture and high-level design',
+    responsibilities: [
+      'Design overall system architecture',
+      'Define component interactions',
+      'Establish coding standards and patterns',
+      'Review and validate technical decisions'
+    ],
+    systemPrompt: `You are the System Architect. Your role is to:
+- Design the overall architecture and system structure
+- Make high-level technical decisions
+- Define how components should interact
+- Ensure scalability and maintainability
+- Review other agents' work for architectural consistency
+
+When given a task, focus on the big picture and architectural patterns.`
+  },
+  [AgentType.GEMINI]: {
+    name: 'Integrator',
+    description: 'Frontend and backend integration',
+    responsibilities: [
+      'Implement frontend components',
+      'Connect frontend to backend APIs',
+      'Handle data flow and state management',
+      'Ensure smooth integration across layers'
+    ],
+    systemPrompt: `You are the Integration Specialist. Your role is to:
+- Implement frontend and backend integration
+- Build UI components and connect them to APIs
+- Manage data flow between layers
+- Handle state management and data synchronization
+- Ensure seamless communication between components
+
+Focus on making different parts of the system work together cohesively.`
+  },
+  [AgentType.CODEX]: {
+    name: 'Reviewer',
+    description: 'Quality assurance and code review',
+    responsibilities: [
+      'Review code quality and best practices',
+      'Integrate work from other agents',
+      'Ensure tests pass and code works',
+      'Validate final implementation'
+    ],
+    systemPrompt: `You are the Quality Reviewer. Your role is to:
+- Review code from other agents for quality
+- Ensure best practices are followed
+- Integrate and validate the final implementation
+- Run tests and verify functionality
+- Identify bugs and improvement opportunities
+
+Focus on quality, correctness, and final integration of all work.`
+  }
+};
+
 /**
  * CLI-facing Orchestrator
  * Provides the methods expected by the main CLI entry point
@@ -73,10 +138,42 @@ export class Orchestrator {
    * Get the default model being used by an agent CLI
    */
   private async getAgentDefaultModel(command: string): Promise<string | undefined> {
-    // Each CLI has different ways to show the current model
-    // For now, return undefined to use 'default' display
-    // The actual model will be shown in the streaming output
-    return undefined;
+    try {
+      // Try to query the model from the CLI
+      // Each CLI has different ways to show configuration
+      let args: string[] = [];
+
+      if (command === 'claude') {
+        // Claude CLI shows model with --version or in help
+        args = ['--help'];
+      } else if (command === 'gemini') {
+        // Gemini CLI might have a config command
+        args = ['--help'];
+      } else if (command === 'codex') {
+        // Codex CLI configuration
+        args = ['--help'];
+      }
+
+      const proc = Bun.spawn([command, ...args], {
+        stdout: 'pipe',
+        stderr: 'pipe',
+        timeout: 3000,
+      });
+
+      const output = await new Response(proc.stdout).text();
+      await proc.exited;
+
+      // Try to extract model info from help output
+      // This is a best-effort attempt - if it fails, we'll show 'default'
+      const modelMatch = output.match(/model[:\s]+([^\s\n]+)/i);
+      if (modelMatch && modelMatch[1]) {
+        return modelMatch[1];
+      }
+
+      return undefined;
+    } catch {
+      return undefined;
+    }
   }
 
   /**
@@ -224,7 +321,12 @@ export class Orchestrator {
    * Execute a goal from start to finish
    */
   async run(goal: string, mode: ExecutionMode): Promise<ExecutionResult> {
-    // Create plan
+    // For parallel mode, use role-based parallel execution
+    if (mode === ExecutionMode.PARALLEL) {
+      return this.executeParallel(goal);
+    }
+
+    // Create plan for iterative mode
     this.ui.info('Creating execution plan...');
     const plan = await this.createPlan(goal, mode);
 
@@ -233,6 +335,224 @@ export class Orchestrator {
 
     // Execute
     return this.executePlan(plan);
+  }
+
+  /**
+   * Execute with all agents in parallel using their specialized roles
+   */
+  async executeParallel(goal: string): Promise<ExecutionResult> {
+    const startTime = Date.now();
+    const planId = `parallel_${Date.now().toString(36)}`;
+
+    this.ui.info('Starting parallel execution with role-based agents...');
+    console.log();
+
+    // Show agent roles
+    for (const [agentType, role] of Object.entries(AGENT_ROLES)) {
+      const agentConfig = AGENT_CONFIGS[agentType as AgentType];
+      const modelInfo = agentConfig.model || 'default';
+      console.log(`  ${role.name} (${agentConfig.name}) [${modelInfo}]: ${role.description}`);
+    }
+    console.log();
+
+    // Create shared context for inter-agent communication
+    const sharedContext = {
+      goal,
+      architectureNotes: '',
+      integrationNotes: '',
+      reviewNotes: '',
+    };
+
+    // Execute all agents in parallel
+    const agentPromises = [
+      this.executeAgentWithRole(AgentType.CLAUDE, goal, sharedContext),
+      this.executeAgentWithRole(AgentType.GEMINI, goal, sharedContext),
+      this.executeAgentWithRole(AgentType.CODEX, goal, sharedContext),
+    ];
+
+    const results = await Promise.allSettled(agentPromises);
+
+    // Process results
+    const taskResults: TaskResult[] = [];
+    const errors: string[] = [];
+    const filesModified: string[] = [];
+
+    results.forEach((result, index) => {
+      const agent = [AgentType.CLAUDE, AgentType.GEMINI, AgentType.CODEX][index]!;
+
+      if (result.status === 'fulfilled') {
+        taskResults.push(result.value);
+        filesModified.push(...result.value.filesModified);
+      } else {
+        errors.push(`${agent}: ${result.reason}`);
+        taskResults.push({
+          taskId: agent,
+          success: false,
+          output: '',
+          error: String(result.reason),
+          duration: 0,
+          agent,
+          filesModified: [],
+        });
+      }
+    });
+
+    const totalDuration = Date.now() - startTime;
+    const successCount = taskResults.filter(r => r.success).length;
+
+    const executionResult: ExecutionResult = {
+      planId,
+      success: errors.length === 0,
+      tasks: taskResults,
+      totalDuration,
+      filesModified: [...new Set(filesModified)],
+      filesCreated: [],
+      summary: `Parallel execution: ${successCount}/3 agents succeeded in ${(totalDuration / 1000).toFixed(1)}s`,
+      errors,
+    };
+
+    this.ui.showResult(executionResult);
+    return executionResult;
+  }
+
+  /**
+   * Execute a single agent with its specialized role
+   */
+  private async executeAgentWithRole(
+    agent: AgentType,
+    goal: string,
+    sharedContext: any
+  ): Promise<TaskResult> {
+    const startTime = Date.now();
+    const agentConfig = AGENT_CONFIGS[agent];
+    const role = AGENT_ROLES[agent];
+
+    // Build role-based prompt
+    const context = this.contextManager.generateContextString();
+    const prompt = `${role.systemPrompt}
+
+## Project Context
+${context}
+
+## Goal
+${goal}
+
+## Your Responsibilities (${role.name})
+${role.responsibilities.map((r, i) => `${i + 1}. ${r}`).join('\n')}
+
+## Inter-Agent Collaboration
+- Architecture decisions will be shared by the Architect
+- Integration work will be coordinated by the Integrator
+- Final review and validation by the Reviewer
+
+Please focus on your specific responsibilities while keeping the overall goal in mind.`;
+
+    // Build args
+    const args = [...agentConfig.args];
+    if (agentConfig.model) {
+      args.push('-m', agentConfig.model);
+    }
+    args.push(prompt);
+
+    // Show agent starting
+    this.ui.showStreamingStart(agent, 0, 3, `${role.name}: ${role.description}`);
+
+    try {
+      const proc = Bun.spawn([agentConfig.command, ...args], {
+        cwd: this.config.workingDirectory,
+        stdout: 'pipe',
+        stderr: 'pipe',
+      });
+
+      let output = '';
+      let stderr = '';
+
+      // Stream output
+      const decoder = new TextDecoder();
+      const reader = proc.stdout.getReader();
+
+      try {
+        let buffer = '';
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          output += chunk;
+          buffer += chunk;
+
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (line.trim()) {
+              console.log(`[${role.name}] ${line}`);
+            }
+          }
+        }
+
+        if (buffer.trim()) {
+          console.log(`[${role.name}] ${buffer}`);
+        }
+      } catch {
+        // Stream ended
+      }
+
+      // Capture stderr
+      const stderrReader = proc.stderr.getReader();
+      try {
+        while (true) {
+          const { done, value } = await stderrReader.read();
+          if (done) break;
+          stderr += decoder.decode(value, { stream: true });
+        }
+      } catch {
+        // Stream ended
+      }
+
+      const exitCode = await proc.exited;
+      const duration = Date.now() - startTime;
+
+      this.ui.showStreamingEnd(agent, duration, exitCode === 0);
+
+      // Update shared context based on role
+      if (exitCode === 0) {
+        if (agent === AgentType.CLAUDE) {
+          sharedContext.architectureNotes = output.slice(0, 500);
+        } else if (agent === AgentType.GEMINI) {
+          sharedContext.integrationNotes = output.slice(0, 500);
+        } else if (agent === AgentType.CODEX) {
+          sharedContext.reviewNotes = output.slice(0, 500);
+        }
+      }
+
+      const filesModified = this.parseFilesFromOutput(output);
+
+      return {
+        taskId: agent,
+        success: exitCode === 0,
+        output,
+        error: exitCode !== 0 ? stderr || `Exit code: ${exitCode}` : undefined,
+        duration,
+        agent,
+        filesModified,
+      };
+    } catch (err) {
+      const duration = Date.now() - startTime;
+      const errorMsg = err instanceof Error ? err.message : String(err);
+
+      this.ui.showStreamingEnd(agent, duration, false);
+
+      return {
+        taskId: agent,
+        success: false,
+        output: '',
+        error: errorMsg,
+        duration,
+        agent,
+        filesModified: [],
+      };
+    }
   }
 
   /**
