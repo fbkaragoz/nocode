@@ -1,0 +1,18 @@
+[package]
+name = "agent-tui"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ratatui = "0.26.1"
+crossterm = "0.27.0"
+tokio = { version = "1.36.0", features = ["full"] }
+anyhow = "1.0.80"
+rand = "0.8.5"
+axum = "0.7.4"
+serde = { version = "1.0.197", features = ["derive"] }
+serde_json = "1.0.114"
+reqwest = { version = "0.11.24", features = ["json"] }
+tower-http = { version = "0.5.1", features = ["cors"] }
+dotenvy = "0.15.7"
+rusqlite = { version = "0.31.0", features = ["bundled"] }
