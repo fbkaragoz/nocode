@@ -1,0 +1,37 @@
+[
+    {
+        "name": "GPT",
+        "provider": "OpenAI",
+        "model": "gpt-5-mini"
+    },
+    {
+        "name": "Gemini",
+        "provider": "Gemini",
+        "model": "gemini-3-flash-preview"
+    },
+    {
+        "name": "DeepSeek",
+        "provider": "OpenRouter",
+        "model": "deepseek/deepseek-v3.2"
+    },
+    {
+        "name": "Mistral",
+        "provider": "OpenRouter",
+        "model": "mistralai/mistral-small-creative"
+    },
+    {
+        "name": "Kimi",
+        "provider": "OpenRouter",
+        "model": "moonshotai/kimi-k2-thinking"
+    },
+    {
+        "name": "Nemotron",
+        "provider": "OpenRouter",
+        "model": "nvidia/nemotron-3-nano-30b-a3b"
+    },
+    {
+        "name": "Liquid",
+        "provider": "OpenRouter",
+        "model": "liquid/lfm2-8b-a1b"
+    }
+]
