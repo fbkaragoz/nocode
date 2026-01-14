@@ -34,7 +34,7 @@ export class ContextManager {
 
   private initializeDatabase(): void {
     // Create tables
-    this.db.exec(`
+    this.db.prepare(`
       CREATE TABLE IF NOT EXISTS context (
         id INTEGER PRIMARY KEY,
         root_path TEXT NOT NULL,
@@ -273,10 +273,10 @@ export class ContextManager {
         for (const entry of entries) {
           // Skip hidden and common ignore patterns
           if (entry.name.startsWith('.') ||
-              entry.name === 'node_modules' ||
-              entry.name === '__pycache__' ||
-              entry.name === 'dist' ||
-              entry.name === 'build') {
+            entry.name === 'node_modules' ||
+            entry.name === '__pycache__' ||
+            entry.name === 'dist' ||
+            entry.name === 'build') {
             continue;
           }
 
@@ -351,8 +351,8 @@ ${Object.entries(this.context.conventions).map(([k, v]) => `- **${k}**: ${v}`).j
 
 ## Project Structure
 ${Object.entries(this.context.fileStructure).map(([dir, files]) =>
-  `### ${dir}/\n${files.map(f => `- ${f}`).join('\n')}`
-).join('\n\n') || 'Run file scan to populate'}
+      `### ${dir}/\n${files.map(f => `- ${f}`).join('\n')}`
+    ).join('\n\n') || 'Run file scan to populate'}
 
 ## Guidelines
 - Think before acting
